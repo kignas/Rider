@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Nearbite Rider — Log In</title>
+<style>
+/* ===================================================================
+   Nearbite Rider Login
+   Palette: asphalt charcoal + signal-lime accent (traffic-light "go")
+   Type:    Sora (display) / Inter (body) / JetBrains Mono (digits)
+   =================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap');
+
+:root {
+  --bg:            #14171C;
+  --surface:       #1D2229;
+  --surface-raised:#242A32;
+  --border:        #2B323C;
+  --text:          #F3F1EA;
+  --text-dim:      #9BA3AF;
+  --accent:        #C8FF4D;
+  --accent-dim:    #9CCB33;
+  --error:         #FF6B5E;
+  --error-bg:      rgba(255, 107, 94, 0.1);
+
+  --font-display: 'Sora', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 40px;
+  background:
+    radial-gradient(600px 300px at 50% -10%, rgba(200,255,77,0.08), transparent 70%),
+    var(--bg);
+}
+
+/* ---------- Signature element: the route strip ---------- */
+.route-strip {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  height: 24px;
+  margin-bottom: 8px;
+}
+.route-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.route-line path {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+}
+.route-dot {
+  position: absolute;
+  top: 50%;
+  left: 8%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px 2px rgba(200,255,77,0.6);
+  transform: translateY(-50%);
+  animation: ride 3.6s ease-in-out infinite;
+}
+.route-pin {
+  position: absolute;
+  top: 50%;
+  right: 6%;
+  transform: translateY(-55%);
+  font-size: 14px;
+  opacity: 0.8;
+}
+@keyframes ride {
+  0%   { left: 6%; }
+  50%  { left: 82%; }
+  100% { left: 6%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-dot { animation: none; left: 44%; }
+}
+
+/* ---------- Card ---------- */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #10130F;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+}
+.brand-text h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.brand-text p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.headline {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 4px 0 4px;
+  line-height: 1.2;
+}
+.subhead {
+  margin: 0 0 22px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 20px;
+}
+.tab {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tab.is-active {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+/* ---------- Fields ---------- */
+.field { margin-bottom: 16px; }
+.field.is-hidden { display: none; }
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+input {
+  width: 100%;
+  padding: 13px 14px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input::placeholder { color: #5C636E; }
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200,255,77,0.15);
+}
+
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 44px; }
+.toggle-visibility {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  border-radius: 6px;
+}
+.toggle-visibility:hover { color: var(--text); }
+.toggle-visibility:focus-visible,
+input:focus-visible,
+.tab:focus-visible,
+.submit-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Error ---------- */
+.error-banner {
+  background: var(--error-bg);
+  border: 1px solid rgba(255,107,94,0.35);
+  color: var(--error);
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.error-banner.is-hidden { display: none; }
+
+/* ---------- Submit ---------- */
+.submit-btn {
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #10130F;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.submit-btn:hover { background: var(--accent-dim); }
+.submit-btn:active { transform: scale(0.98); }
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(16,19,15,0.3);
+  border-top-color: #10130F;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.btn-spinner.is-hidden { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.footnote {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 18px 0 0;
+}
+
+@media (max-width: 380px) {
+  .card { padding: 22px 18px 20px; border-radius: 16px; }
+  .headline { font-size: 21px; }
+}
+
+</style>
+</head>
+<body>
+
+  <div class="screen">
+
+    <!-- Route strip: signature element -->
+    <div class="route-strip" aria-hidden="true">
+      <svg class="route-line" viewBox="0 0 400 24" preserveAspectRatio="none">
+        <path d="M0,12 L400,12" />
+      </svg>
+      <span class="route-dot"></span>
+      <span class="route-pin">📍</span>
+    </div>
+
+    <main class="card">
+
+      <div class="brand">
+        <span class="brand-mark">N</span>
+        <div class="brand-text">
+          <h1>Nearbite</h1>
+          <p>Rider</p>
+        </div>
+      </div>
+
+      <h2 class="headline">Start your shift</h2>
+      <p class="subhead">Log in to see today's deliveries.</p>
+
+      <div class="tabs" role="tablist" aria-label="Login method">
+        <button type="button" class="tab is-active" id="tab-phone" role="tab" aria-selected="true">Phone</button>
+        <button type="button" class="tab" id="tab-email" role="tab" aria-selected="false">Email</button>
+      </div>
+
+      <form id="login-form" novalidate>
+
+        <div class="field" id="field-phone">
+          <label for="phone">Phone number</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            inputmode="numeric"
+            autocomplete="tel"
+            placeholder="98765 43210"
+          />
+        </div>
+
+        <div class="field is-hidden" id="field-email">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            autocomplete="username"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-wrap">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="••••••••"
+            />
+            <button type="button" class="toggle-visibility" id="toggle-password" aria-label="Show password">
+              <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="error-banner is-hidden" id="error-banner" role="alert"></div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+          <span class="btn-label">Log in</span>
+          <span class="btn-spinner is-hidden" id="btn-spinner"></span>
+        </button>
+
+      </form>
+
+      <p class="footnote">Having trouble logging in? Contact your Nearbite dispatcher.</p>
+
+    </main>
+
+  </div>
+
+  <script>
+(() => {
+  "use strict";
+
+  // If the frontend is ever served from a different origin than the API
+  // (e.g. static file during local dev while the API runs on another port),
+  // change this to the full API origin, e.g. "http://localhost:5000".
+  const API_BASE = "";
+  const LOGIN_ENDPOINT = `${API_BASE}/api/auth/rider/login`;
+
+  const REDIRECT_ON_SUCCESS = "rider-dashboard.html"; // built in the next step
+
+  const form = document.getElementById("login-form");
+  const tabPhone = document.getElementById("tab-phone");
+  const tabEmail = document.getElementById("tab-email");
+  const fieldPhone = document.getElementById("field-phone");
+  const fieldEmail = document.getElementById("field-email");
+  const phoneInput = document.getElementById("phone");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const togglePasswordBtn = document.getElementById("toggle-password");
+  const eyeIcon = document.getElementById("eye-icon");
+  const errorBanner = document.getElementById("error-banner");
+  const submitBtn = document.getElementById("submit-btn");
+  const btnLabel = submitBtn.querySelector(".btn-label");
+  const btnSpinner = document.getElementById("btn-spinner");
+
+  let activeMethod = "phone"; // "phone" | "email"
+
+  // ---------- Tab switching ----------
+  function setMethod(method) {
+    activeMethod = method;
+    const isPhone = method === "phone";
+
+    tabPhone.classList.toggle("is-active", isPhone);
+    tabEmail.classList.toggle("is-active", !isPhone);
+    tabPhone.setAttribute("aria-selected", String(isPhone));
+    tabEmail.setAttribute("aria-selected", String(!isPhone));
+
+    fieldPhone.classList.toggle("is-hidden", !isPhone);
+    fieldEmail.classList.toggle("is-hidden", isPhone);
+
+    hideError();
+  }
+
+  tabPhone.addEventListener("click", () => setMethod("phone"));
+  tabEmail.addEventListener("click", () => setMethod("email"));
+
+  // ---------- Password visibility ----------
+  togglePasswordBtn.addEventListener("click", () => {
+    const isPassword = passwordInput.type === "password";
+    passwordInput.type = isPassword ? "text" : "password";
+    togglePasswordBtn.setAttribute(
+      "aria-label",
+      isPassword ? "Hide password" : "Show password"
+    );
+    eyeIcon.style.opacity = isPassword ? "1" : "0.6";
+  });
+
+  // ---------- Error banner ----------
+  function showError(message) {
+    errorBanner.textContent = message;
+    errorBanner.classList.remove("is-hidden");
+  }
+
+  function hideError() {
+    errorBanner.classList.add("is-hidden");
+    errorBanner.textContent = "";
+  }
+
+  // ---------- Loading state ----------
+  function setLoading(isLoading) {
+    submitBtn.disabled = isLoading;
+    phoneInput.disabled = isLoading;
+    emailInput.disabled = isLoading;
+    passwordInput.disabled = isLoading;
+    btnLabel.textContent = isLoading ? "Logging in…" : "Log in";
+    btnSpinner.classList.toggle("is-hidden", !isLoading);
+  }
+
+  // ---------- Client-side validation ----------
+  function validate() {
+    const password = passwordInput.value.trim();
+
+    if (activeMethod === "phone") {
+      const phone = phoneInput.value.trim();
+      if (!phone) return "Enter your phone number.";
+    } else {
+      const email = emailInput.value.trim();
+      if (!email) return "Enter your email.";
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(email)) return "Enter a valid email address.";
+    }
+
+    if (!password) return "Enter your password.";
+    return null;
+  }
+
+  // ---------- Submit ----------
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const validationError = validate();
+    if (validationError) {
+      showError(validationError);
+      return;
+    }
+
+    const payload = { password: passwordInput.value.trim() };
+    if (activeMethod === "phone") {
+      payload.phone = phoneInput.value.trim();
+    } else {
+      payload.email = emailInput.value.trim();
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(LOGIN_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Unexpected response from the server.");
+      }
+
+      if (!res.ok || !data.success) {
+        showError(data.message || "Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Persist session for the dashboard and later screens.
+      localStorage.setItem("riderToken", data.token);
+      localStorage.setItem("riderUser", JSON.stringify(data.user));
+
+      window.location.href = REDIRECT_ON_SUCCESS;
+    } catch (err) {
+      showError(
+        err.message === "Failed to fetch"
+          ? "Can't reach the server. Check your connection and try again."
+          : err.message || "Something went wrong. Please try again."
+      );
+      setLoading(false);
+    }
+  });
+
+  // If a rider is already logged in, skip straight to the dashboard.
+  if (localStorage.getItem("riderToken")) {
+    window.location.href = REDIRECT_ON_SUCCESS;
+  }
+})();
+
+</script>
+</body>
+</html>
