@@ -654,6 +654,77 @@ a:focus-visible {
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.is-error { border-color: rgba(255,107,94,0.4); color: var(--error); }
 
+/* ---------- OTP verification modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 12, 15, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.18s ease both;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.otp-modal {
+  width: 100%;
+  max-width: 340px;
+  padding: 22px;
+  animation: modalPop 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.otp-modal-head { display: flex; align-items: center; justify-content: space-between; }
+.otp-modal-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+}
+.otp-modal-close { width: 30px; height: 30px; }
+.otp-modal-close svg { width: 14px; height: 14px; }
+.otp-modal-sub {
+  margin: 4px 0 18px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.otp-input-row {
+  display: flex; gap: 10px; justify-content: center;
+  margin-bottom: 14px;
+}
+.otp-box {
+  width: 52px; height: 58px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.otp-box:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.otp-box:disabled { opacity: 0.65; }
+.otp-feedback {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.otp-feedback.is-error { color: var(--error); }
+.otp-feedback.is-success { color: var(--accent); }
+.otp-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+
 @media (max-width: 380px) {
   .card, .profile-card, .order-card { border-radius: 16px; }
   .scroll-area { padding: 14px 12px calc(28px + env(safe-area-inset-bottom)); }
@@ -789,6 +860,11 @@ a:focus-visible {
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <!-- OTP verification modal (opened from "Mark delivered" on the active order) -->
+  <div class="modal-overlay is-hidden" id="otp-modal-overlay" aria-hidden="true">
+    <div class="card otp-modal" id="otp-modal" role="dialog" aria-modal="true" aria-labelledby="otp-modal-title"></div>
+  </div>
+
   <script>
 (() => {
   "use strict";
@@ -849,6 +925,7 @@ a:focus-visible {
       assignedAt: raw.riderAssignedAt || raw.createdAt,
       updatedAt: raw.updatedAt,
       status: raw.status,
+      deliveryOtpVerified: !!raw.deliveryOtpVerified,
     };
   }
 
@@ -859,6 +936,7 @@ a:focus-visible {
     reached_restaurant: "At restaurant",
     picked_up: "Picked up",
     out_for_delivery: "Out for delivery",
+    otp_verified: "PIN verified",
     delivered: "Delivered",
   };
   const NEXT_ACTION = {
@@ -867,6 +945,12 @@ a:focus-visible {
     reached_restaurant:   { next: "picked_up",            label: "Mark picked up" },
     picked_up:             { next: "out_for_delivery",     label: "Start delivery" },
     out_for_delivery:      { next: "delivered",            label: "Mark delivered" },
+    // otp_verified: the backend has confirmed the PIN but the rider hasn't
+    // tapped "Mark delivered" yet (e.g. they left and came back). Route the
+    // same "delivered" action here so the button still shows on reload —
+    // openOtpModal() below sees this status and skips straight past PIN
+    // entry to the already-verified state.
+    otp_verified:          { next: "delivered",            label: "Mark delivered" },
   };
   const TOAST_ON_ADVANCE = {
     accepted: "Order accepted.",
@@ -926,6 +1010,21 @@ a:focus-visible {
     }
   }
 
+  async function apiPost(path, body) {
+    try {
+      const res = await fetch(API_BASE + path, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(body || {}),
+      });
+      return await handleResponse(res);
+    } catch (err) {
+      throw new Error(err.message === "Failed to fetch"
+        ? "Can't reach the server. Check your connection and try again."
+        : err.message);
+    }
+  }
+
   /* ══════════════════════════════════════════════════════════════
      Small utilities
   ══════════════════════════════════════════════════════════════ */
@@ -965,6 +1064,7 @@ a:focus-visible {
 
   const svgPhone = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
   const svgNavigate = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>';
+  const svgClose = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
   /* ══════════════════════════════════════════════════════════════
      Profile
@@ -1175,7 +1275,17 @@ a:focus-visible {
 
     const advanceBtn = document.getElementById("advance-btn");
     if (advanceBtn && action) {
-      advanceBtn.addEventListener("click", () => advanceOrderStatus(order.id, action.next, advanceBtn));
+      advanceBtn.addEventListener("click", () => {
+        if (action.next === "delivered") {
+          // "Mark delivered" always goes through PIN verification first.
+          // If the order already came back as otp_verified (e.g. the rider
+          // verified the PIN, then backgrounded the app before tapping
+          // through), skip straight to the verified state.
+          openOtpModal(order.id, order.riderStatus === "otp_verified" || order.deliveryOtpVerified);
+        } else {
+          advanceOrderStatus(order.id, action.next, advanceBtn);
+        }
+      });
     }
   }
 
@@ -1186,6 +1296,163 @@ a:focus-visible {
     try {
       await apiPut(`/api/riders/orders/${orderId}/status`, { status: nextStatus });
       showToast(TOAST_ON_ADVANCE[nextStatus] || "Order updated.");
+      await Promise.all([loadActiveOrder(), loadEarnings(), loadAssignedOrders(), loadHistory()]);
+    } catch (err) {
+      showToast(err.message, "error");
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalLabel;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     OTP delivery verification modal
+     Flow: rider taps "Mark delivered" on an out_for_delivery order →
+     modal opens asking for the customer's 4-digit PIN → POST verify-otp →
+     on success the modal reveals its own "Mark Delivered" button, which
+     PUTs status=delivered through the same endpoint advanceOrderStatus()
+     already uses.
+
+     ENDPOINT NOTE: every other endpoint in this file lives under
+     /api/riders/... (plural), so verify-otp is called the same way below.
+     If the actual backend route is singular (/api/rider/...), this is the
+     one line to change.
+  ══════════════════════════════════════════════════════════════ */
+  let otpModalOrderId = null;
+  let otpVerified = false;
+
+  function openOtpModal(orderId, alreadyVerified) {
+    otpModalOrderId = orderId;
+    otpVerified = !!alreadyVerified;
+    renderOtpModal();
+    document.getElementById("otp-modal-overlay").classList.remove("is-hidden");
+  }
+
+  function closeOtpModal() {
+    document.getElementById("otp-modal-overlay").classList.add("is-hidden");
+    document.getElementById("otp-modal").innerHTML = "";
+    otpModalOrderId = null;
+    otpVerified = false;
+  }
+
+  function renderOtpModal() {
+    const modal = document.getElementById("otp-modal");
+    modal.innerHTML = `
+      <div class="otp-modal-head">
+        <h3 id="otp-modal-title">Verify Delivery</h3>
+        <button class="icon-btn otp-modal-close" id="otp-modal-close" type="button" aria-label="Close">${svgClose}</button>
+      </div>
+      <p class="otp-modal-sub">Enter the customer's 4-digit PIN</p>
+      <div class="otp-input-row ${otpVerified ? "is-hidden" : ""}" id="otp-input-row">
+        <input class="otp-box" id="otp-box-0" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" aria-label="PIN digit 1">
+        <input class="otp-box" id="otp-box-1" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 2">
+        <input class="otp-box" id="otp-box-2" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 3">
+        <input class="otp-box" id="otp-box-3" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 4">
+      </div>
+      <div class="otp-feedback ${otpVerified ? "is-success" : "is-hidden"}" id="otp-feedback">${otpVerified ? "✅ PIN Verified" : ""}</div>
+      <div class="otp-modal-actions">
+        <button class="btn-primary ${otpVerified ? "is-hidden" : ""}" id="otp-verify-btn" type="button" disabled>Verify OTP</button>
+        <button class="btn-primary ${otpVerified ? "" : "is-hidden"}" id="otp-mark-delivered-btn" type="button" ${otpVerified ? "" : "disabled"}>Mark Delivered</button>
+      </div>
+    `;
+    wireOtpModalEvents();
+  }
+
+  function wireOtpModalEvents() {
+    const boxes = [0, 1, 2, 3].map((i) => document.getElementById(`otp-box-${i}`));
+
+    boxes.forEach((box, i) => {
+      if (!box) return;
+      box.addEventListener("input", (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 1);
+        if (e.target.value && boxes[i + 1]) boxes[i + 1].focus();
+        updateVerifyBtnState();
+      });
+      box.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !box.value && boxes[i - 1]) boxes[i - 1].focus();
+        if (e.key === "Enter") {
+          const btn = document.getElementById("otp-verify-btn");
+          if (btn && !btn.disabled) submitOtp();
+        }
+      });
+      box.addEventListener("paste", (e) => {
+        const text = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
+        if (text.length >= 4) {
+          e.preventDefault();
+          text.slice(0, 4).split("").forEach((d, idx) => { if (boxes[idx]) boxes[idx].value = d; });
+          boxes[3].focus();
+          updateVerifyBtnState();
+        }
+      });
+    });
+
+    if (!otpVerified && boxes[0]) boxes[0].focus();
+
+    const verifyBtn = document.getElementById("otp-verify-btn");
+    if (verifyBtn) verifyBtn.addEventListener("click", submitOtp);
+
+    const markBtn = document.getElementById("otp-mark-delivered-btn");
+    if (markBtn) markBtn.addEventListener("click", () => confirmDeliveryAfterOtp(markBtn));
+
+    const closeBtn = document.getElementById("otp-modal-close");
+    if (closeBtn) closeBtn.addEventListener("click", closeOtpModal);
+
+    updateVerifyBtnState();
+  }
+
+  function updateVerifyBtnState() {
+    if (otpVerified) return;
+    const boxes = [0, 1, 2, 3].map((i) => document.getElementById(`otp-box-${i}`));
+    const verifyBtn = document.getElementById("otp-verify-btn");
+    if (!verifyBtn) return;
+    verifyBtn.disabled = !boxes.every((b) => b && b.value.length === 1);
+  }
+
+  async function submitOtp() {
+    if (otpVerified || !otpModalOrderId) return;
+    const boxes = [0, 1, 2, 3].map((i) => document.getElementById(`otp-box-${i}`));
+    const otp = boxes.map((b) => b.value).join("");
+    if (otp.length !== 4) return;
+
+    const verifyBtn = document.getElementById("otp-verify-btn");
+    const feedback = document.getElementById("otp-feedback");
+    const originalLabel = verifyBtn.innerHTML;
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<span class="btn-inline-spinner"></span>';
+    feedback.classList.add("is-hidden");
+    feedback.classList.remove("is-error", "is-success");
+
+    try {
+      await apiPost(`/api/riders/orders/${otpModalOrderId}/verify-otp`, { otp });
+      otpVerified = true;
+      feedback.textContent = "✅ PIN Verified";
+      feedback.classList.remove("is-hidden", "is-error");
+      feedback.classList.add("is-success");
+      document.getElementById("otp-input-row").classList.add("is-hidden");
+      verifyBtn.classList.add("is-hidden");
+      const markBtn = document.getElementById("otp-mark-delivered-btn");
+      markBtn.classList.remove("is-hidden");
+      markBtn.disabled = false;
+    } catch (err) {
+      feedback.textContent = "❌ Incorrect PIN";
+      feedback.classList.remove("is-hidden", "is-success");
+      feedback.classList.add("is-error");
+      boxes.forEach((b) => { if (b) b.value = ""; });
+      if (boxes[0]) boxes[0].focus();
+      verifyBtn.innerHTML = originalLabel;
+      verifyBtn.disabled = true;
+    }
+  }
+
+  async function confirmDeliveryAfterOtp(btnEl) {
+    const orderId = otpModalOrderId;
+    if (!orderId) return;
+    const originalLabel = btnEl.innerHTML;
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<span class="btn-inline-spinner"></span>';
+    try {
+      await apiPut(`/api/riders/orders/${orderId}/status`, { status: "delivered" });
+      showToast(TOAST_ON_ADVANCE.delivered);
+      closeOtpModal();
       await Promise.all([loadActiveOrder(), loadEarnings(), loadAssignedOrders(), loadHistory()]);
     } catch (err) {
       showToast(err.message, "error");
@@ -1407,6 +1674,15 @@ a:focus-visible {
   /* ══════════════════════════════════════════════════════════════
      Init
   ══════════════════════════════════════════════════════════════ */
+  document.getElementById("otp-modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "otp-modal-overlay") closeOtpModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const overlay = document.getElementById("otp-modal-overlay");
+    if (overlay && !overlay.classList.contains("is-hidden")) closeOtpModal();
+  });
+
   refreshAll();
   setupPullToRefresh();
 })();
