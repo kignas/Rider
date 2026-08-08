@@ -899,8 +899,16 @@ a:focus-visible {
   function formatAddress(addr) {
     if (!addr) return "";
     if (typeof addr === "string") return addr;
-    return [addr.line1, addr.street, addr.area, addr.city, addr.pincode]
-      .filter(Boolean).join(", ");
+    return [
+      addr.tag,
+      addr.house,
+      addr.line1,
+      addr.street,
+      addr.area,
+      addr.landmark ? `Near ${addr.landmark}` : "",
+      addr.city,
+      addr.pincode
+    ].filter(Boolean).join(", ");
   }
 
   function normalizeOrder(raw) {
