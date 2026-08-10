@@ -209,8 +209,9 @@ function restaurant(o){
   const r=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};
   const owner=r.owner&&typeof r.owner==='object'?r.owner:{};
   return {
-    name:o.restaurantName||r.name||'Restaurant',
-    address:addr(o.restaurantAddress||r.address),
+    name:o.restaurantName||r.name||r.restaurantName||o.restaurant?.restaurantName||'Restaurant',
+    // Restaurant text locations are intentionally not shown until real GPS coordinates exist.
+    address:'',
     phone:o.restaurantPhone||r.phone||r.contactNumber||owner.phone||owner.mobile||'',
     ownerName:owner.name||'Restaurant owner'
   };
@@ -220,7 +221,17 @@ function customer(o){
   const a=o.deliveryAddress||{};
   return {name:o.customerName||c.name||a.name||'Customer',phone:o.customerPhone||c.phone||a.phone||'',address:addr(a)};
 }
-function normalize(o){return {...o,id:o._id,shortId:'#'+String(o._id||'').slice(-6).toUpperCase()}}
+function normalize(o){
+  const restaurantObj=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};
+  const owner=restaurantObj.owner&&typeof restaurantObj.owner==='object'?restaurantObj.owner:{};
+  return {
+    ...o,
+    id:o._id,
+    shortId:'#'+String(o._id||'').slice(-6).toUpperCase(),
+    restaurantName:o.restaurantName||restaurantObj.name||restaurantObj.restaurantName||'Restaurant',
+    restaurantPhone:o.restaurantPhone||restaurantObj.phone||restaurantObj.contactNumber||owner.phone||''
+  };
+}
 function statusLabel(s){return ({assigned:'New assignment',accepted:'Accepted',reached_restaurant:'At restaurant',picked_up:'Picked up',out_for_delivery:'On the way',delivered:'Delivered',cancelled:'Cancelled'}[s]||s||'Unknown')}
 function actionFor(o){
   return ({
@@ -313,18 +324,23 @@ function timeline(s){
 function orderCard(o){
   const r=restaurant(o),c=customer(o),a=actionFor(o),live=liveDistance(o);
   const dist=live!=null?live.toFixed(1)+' km':(o.deliveryDistance??o.distanceKm??o.distance!=null?String(o.deliveryDistance??o.distanceKm??o.distance)+' km':'—');
-  const navDest=o.riderStatus==='picked_up'||o.riderStatus==='out_for_delivery'?c.address:r.address;
-  const nav='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(navDest);
+  // Only navigate to the customer after pickup. Never navigate to the restaurant
+  // using its old text address because that location may be fake.
+  const canNavigateCustomer=o.riderStatus==='picked_up'||o.riderStatus==='out_for_delivery';
+  const nav='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(c.address);
+  const navigateBtn=canNavigateCustomer
+    ? '<a class="btn" href="'+nav+'" target="_blank" rel="noopener">Navigate to customer</a>'
+    : '<button class="btn" disabled>Restaurant location unavailable</button>';
   return '<article class="card">'+
     '<div class="orderHead"><span class="orderNo">'+esc(o.orderNumber||o.shortId)+'</span><span class="badge '+(o.riderStatus==='assigned'?'amber':'')+'">'+esc(statusLabel(o.riderStatus))+'</span></div>'+
     '<div class="route">'+
-      '<div class="party"><span class="pin">R</span><div><b>'+esc(r.name)+'</b><small>'+esc(r.address)+'</small></div><a class="phone '+(!r.phone?'missing':'')+'" href="'+(r.phone?'tel:'+esc(r.phone):'#')+'">'+(r.phone?'☎ '+esc(r.phone):'No phone')+'</a></div>'+
+      '<div class="party"><span class="pin">R</span><div><b>'+esc(r.name)+'</b><small>Restaurant location hidden until verified GPS coordinates are available</small></div><a class="phone '+(!r.phone?'missing':'')+'" href="'+(r.phone?'tel:'+esc(r.phone):'#')+'" aria-label="Call restaurant">'+(r.phone?'☎':'No phone')+'</a></div>'+
       '<div class="connector"></div>'+
       '<div class="party"><span class="pin">C</span><div><b>'+esc(c.name)+'</b><small>'+esc(c.address)+'</small></div><a class="phone '+(!c.phone?'missing':'')+'" href="'+(c.phone?'tel:'+esc(c.phone):'#')+'">'+(c.phone?'☎ '+esc(c.phone):'No phone')+'</a></div>'+
     '</div>'+
     '<div class="meta"><div class="metaBox"><small>Rider → customer</small><b>'+esc(dist)+'</b></div><div class="metaBox"><small>Earn</small><b>'+money(o.riderEarning)+'</b></div><div class="metaBox"><small>Items</small><b>'+((o.items||[]).reduce((n,i)=>n+Number(i.quantity||1),0))+'</b></div></div>'+
     timeline(o.riderStatus)+
-    '<div class="actions"><a class="btn" href="'+nav+'" target="_blank" rel="noopener">Navigate</a>'+
+    '<div class="actions">'+navigateBtn+
     (c.phone?'<a class="btn" href="tel:'+esc(c.phone)+'">Call customer</a>':'<button class="btn" disabled>Call customer</button>')+
     (r.phone?'<a class="btn" href="tel:'+esc(r.phone)+'">Call restaurant</a>':'<button class="btn" disabled>Call restaurant</button>')+
     (a?'<button class="btn '+(a.type==='accept'||a.type==='otp'?'primary':'')+'" data-action="'+a.type+':'+(a.next||'')+'" data-id="'+esc(o.id)+'">'+esc(a.label)+'</button>':'')+
