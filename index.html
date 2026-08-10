@@ -374,6 +374,21 @@ a:focus-visible {
 }
 .party-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
 .party-address { font-size: 12.5px; color: var(--text-dim); line-height: 1.4; }
+.party-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 5px;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.party-phone svg { width: 14px; height: 14px; flex-shrink: 0; }
+.party-phone.is-missing {
+  color: var(--text-dim);
+  font-weight: 500;
+}
 
 .route-connector {
   display: flex; align-items: center; gap: 10px;
@@ -914,12 +929,48 @@ a:focus-visible {
       id: raw._id,
       shortId: "#" + String(raw._id || "").slice(-6).toUpperCase(),
       riderStatus: raw.riderStatus || "assigned",
-      restaurantName: raw.restaurantName || restaurant?.name || "Restaurant",
-      restaurantAddress: formatAddress(raw.restaurantAddress || restaurant?.address || restaurant?.location?.address) || "—",
-      restaurantPhone: raw.restaurantPhone || restaurant?.phone || restaurant?.contactNumber || "",
+
+      // Restaurant data can come from the order snapshot OR from
+      // Order.restaurant after the backend populates it.
+      restaurantName:
+        raw.restaurantName ||
+        restaurant?.name ||
+        restaurant?.restaurantName ||
+        "Restaurant",
+
+      restaurantAddress:
+        formatAddress(
+          raw.restaurantAddress ||
+          restaurant?.address ||
+          restaurant?.location?.address ||
+          restaurant?.location
+        ) || "—",
+
+      restaurantPhone:
+        raw.restaurantPhone ||
+        restaurant?.phone ||
+        restaurant?.contactNumber ||
+        restaurant?.phoneNumber ||
+        restaurant?.mobile ||
+        "",
+
       customerName: raw.customerName || customer?.name || dd.name || "Customer",
-      customerPhone: raw.customerPhone || customer?.phone || dd.phone || raw.contactNumber || "",
-      address: formatAddress(raw.deliveryAddress || raw.address || raw.shippingAddress || dd.address) || "—",
+      customerPhone:
+        raw.customerPhone ||
+        customer?.phone ||
+        customer?.mobile ||
+        dd.phone ||
+        raw.contactNumber ||
+        "",
+
+      address:
+        formatAddress(
+          raw.deliveryAddress ||
+          raw.address ||
+          raw.shippingAddress ||
+          dd.address
+        ) || "—",
+
       earnings: Number(raw.riderEarning || 0),
       distance: raw.distance ?? raw.deliveryDistance ?? raw.distanceKm ?? null,
       assignedAt: raw.riderAssignedAt || raw.createdAt,
@@ -1242,6 +1293,9 @@ a:focus-visible {
             <span class="party-label">Restaurant</span>
             <span class="party-name">${escapeHtml(order.restaurantName)}</span>
             <span class="party-address">${escapeHtml(order.restaurantAddress)}</span>
+            ${order.restaurantPhone
+              ? `<a class="party-phone" href="tel:${escapeHtml(order.restaurantPhone)}">${svgPhone} ${escapeHtml(order.restaurantPhone)}</a>`
+              : `<span class="party-phone is-missing">${svgPhone} Restaurant phone unavailable</span>`}
           </div>
           <div class="route-connector"><span class="line"></span><span class="dot"></span></div>
           <div class="party">
@@ -1433,11 +1487,16 @@ a:focus-visible {
       markBtn.classList.remove("is-hidden");
       markBtn.disabled = false;
     } catch (err) {
-      feedback.textContent = "❌ Incorrect PIN";
+      // IMPORTANT: do not label every server error as "Incorrect PIN".
+      // The backend can return expired, locked, not-set, wrong-order/status,
+      // or genuinely incorrect OTP. Show the actual server message.
+      feedback.textContent = "❌ " + (err.message || "PIN verification failed.");
       feedback.classList.remove("is-hidden", "is-success");
       feedback.classList.add("is-error");
+
       boxes.forEach((b) => { if (b) b.value = ""; });
       if (boxes[0]) boxes[0].focus();
+
       verifyBtn.innerHTML = originalLabel;
       verifyBtn.disabled = true;
     }
@@ -1667,6 +1726,29 @@ a:focus-visible {
         });
       } else {
         indicator.style.height = "0px";
+      }
+    }, { passive: true });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     Init
+  ══════════════════════════════════════════════════════════════ */
+  document.getElementById("otp-modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "otp-modal-overlay") closeOtpModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const overlay = document.getElementById("otp-modal-overlay");
+    if (overlay && !overlay.classList.contains("is-hidden")) closeOtpModal();
+  });
+
+  refreshAll();
+  setupPullToRefresh();
+})();
+  </script>
+
+</body>
+</html>
       }
     }, { passive: true });
   }
