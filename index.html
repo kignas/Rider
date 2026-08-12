@@ -170,7 +170,7 @@ if(!token){ location.href=LOGIN; return; }
 
 const $=id=>document.getElementById(id);
 let profile=null, orders=[], history=[], page=1, historyPage=1, pages=1, historyPages=1;
-let filter='all', otpOrderId=null, gpsWatch=null, riderPos=null, loading=false, historyLoading=false, refreshTimer=null;
+let filter='all', otpOrderId=null, gpsWatch=null, riderPos=null, loading=false, historyLoading=false, earningsLoading=false, refreshTimer=null, ordersRequestSeq=0, lastGpsRender=0;
 
 function auth(){return {Authorization:'Bearer '+localStorage.getItem('riderToken')}}
 
@@ -279,17 +279,26 @@ function startGPS(){
 $('locationBtn').onclick=startGPS;
 
 async function loadOrders(reset=true){
-  if(loading)return;loading=true;
+  if(loading)return false;
+  loading=true;
+  const requestSeq=++ordersRequestSeq;
   if(reset){page=1}
   try{
-    const d=await api('/api/riders/orders?page='+page+'&limit=50');
+    const d=await api('/api/riders/orders?page='+page+'&limit=20&activeOnly=true');
+    // Never let an older HTTP response repaint a newer order state.
+    if(requestSeq!==ordersRequestSeq)return false;
     const got=(d.data?.orders||[]).map(normalize);
     orders=reset?got:[...orders,...got.filter(x=>!orders.some(y=>y.id===x.id))];
     pages=Number(d.data?.pages||1);
     $('loadMore').classList.toggle('hidden',page>=pages);
     render();
-  }catch(e){$('orders').innerHTML='<div class="empty"><b>Could not load orders</b>'+esc(e.message)+'</div>'}
-  finally{loading=false}
+    return true;
+  }catch(e){
+    if(requestSeq===ordersRequestSeq){
+      $('orders').innerHTML='<div class="empty"><b>Could not load orders</b>'+esc(e.message)+'</div>';
+    }
+    return false;
+  }finally{loading=false}
 }
 async function loadHistory(reset=true){
   if(historyLoading)return;historyLoading=true;
@@ -304,11 +313,14 @@ async function loadHistory(reset=true){
   finally{historyLoading=false}
 }
 async function loadEarnings(){
+  if(earningsLoading)return;
+  earningsLoading=true;
   try{
     const d=await api('/api/riders/earnings'),x=d.data;
     $('todayEarn').textContent=money(x.today.earnings);$('todayCount').textContent=x.today.deliveries;
     $('earnBig').textContent=money(x.today.earnings);$('eToday').textContent=money(x.today.earnings);$('eWeek').textContent=money(x.thisWeek.earnings);$('eMonth').textContent=money(x.thisMonth.earnings);
   }catch{}
+  finally{earningsLoading=false}
 }
 function render(){
   const visible=orders.filter(o=>filter==='all'||o.riderStatus===filter);
@@ -358,6 +370,7 @@ async function doAction(kind,id,btn){
   const [type,next]=kind.split(':');
   if(type==='otp'){openOtp(id);return}
   btn.disabled=true;const old=btn.textContent;btn.textContent='Working…';
+  ordersRequestSeq++;
   try{
     if(type==='accept') await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'accepted'})});
     else await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});
@@ -394,13 +407,17 @@ $('logoutBtn').onclick=()=>{if(confirm('Log out of Nearbite Rider?')){localStora
 
 async function refresh(full=false){
   try{
-    if(full)await loadProfile();
-    await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()]);
+    if(full){
+      await loadProfile();
+      await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()]);
+    }else{
+      await loadOrders(true);
+    }
   }catch(e){toast(e.message)}
 }
 function startPolling(){
   clearInterval(refreshTimer);
-  refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')refresh(false)},8000);
+  refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')refresh(false)},12000);
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh(false)});
 refresh(true);startPolling();
