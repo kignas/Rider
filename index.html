@@ -246,6 +246,35 @@ function actionFor(o){
 }
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),3000)}
 
+/* ── Alerts (#2) + live location send (#7) ─────────────────────────────
+   Browser notification + a short beep when a NEW delivery is assigned; the
+   rider's GPS is streamed to the backend (throttled) while the app is open. */
+let audioCtx=null;
+function beep(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);const t=audioCtx.currentTime;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.3,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);o.start(t);o.stop(t+0.42);}catch(e){}}
+function ensureNotify(){try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
+function notify(title,body){try{if('Notification'in window&&Notification.permission==='granted')new Notification(title,{body:body||'',tag:'rider-alert',renotify:true});}catch(e){}}
+document.addEventListener('pointerdown',ensureNotify,{once:true});
+
+let seenAssigned=new Set(), firstOrdersLoad=true;
+function checkNewAssignments(){
+  const assignedIds=orders.filter(o=>o.riderStatus==='assigned').map(o=>o.id);
+  const fresh=assignedIds.filter(id=>!seenAssigned.has(id));
+  assignedIds.forEach(id=>seenAssigned.add(id));
+  // Drop ids no longer assigned so a re-assignment later can alert again.
+  seenAssigned.forEach(id=>{if(!assignedIds.includes(id))seenAssigned.delete(id);});
+  if(!firstOrdersLoad && fresh.length){ beep(); notify('New delivery assigned', fresh.length+' order'+(fresh.length>1?'s':'')+' waiting to be accepted.'); }
+  firstOrdersLoad=false;
+}
+
+let lastLocSent=0;
+async function sendLocation(force=false){
+  if(!riderPos)return;
+  const now=Date.now();
+  if(!force && now-lastLocSent<15000)return;   // throttle to at most once / 15s
+  lastLocSent=now;
+  try{ await api('/api/riders/location',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:riderPos.lat,lng:riderPos.lng})}); }catch(e){}
+}
+
 async function loadProfile(){
   const d=await api('/api/riders/profile'); profile=d.data||d;
   const r=profile; const initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';
@@ -262,6 +291,7 @@ function setOnline(on,save=true){
   if(save) toggleOnline(on);
 }
 async function toggleOnline(on){
+  if(on)ensureNotify();
   try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});toast(on?'You are online':'You are offline');}
   catch(e){toast(e.message);$('onlineDot').classList.toggle('on',!on);$('onlineText').textContent=!on?'Online':'Offline';$('onlineBtn').classList.toggle('on',!on)}
 }
@@ -274,6 +304,7 @@ function startGPS(){
   gpsWatch=navigator.geolocation.watchPosition(p=>{
     riderPos={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};
     $('locationBtn').textContent='GPS active';$('profileGps').textContent='Active';render();
+    sendLocation();
   },e=>{gpsWatch=null;toast(e.message||'GPS permission denied');$('locationBtn').textContent='Enable GPS'},{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
 }
 $('locationBtn').onclick=startGPS;
@@ -292,6 +323,8 @@ async function loadOrders(reset=true){
     pages=Number(d.data?.pages||1);
     $('loadMore').classList.toggle('hidden',page>=pages);
     render();
+    checkNewAssignments();
+    sendLocation();
     return true;
   }catch(e){
     if(requestSeq===ordersRequestSeq){
