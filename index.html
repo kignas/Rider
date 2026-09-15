@@ -57,6 +57,13 @@ a{text-decoration:none;color:inherit}
 .loading{height:120px;background:linear-gradient(90deg,var(--surface) 25%,#1b241f 50%,var(--surface) 75%);background-size:500px 100%;animation:sh 1.3s infinite;border-radius:20px}@keyframes sh{to{background-position:500px 0}}
 .hidden{display:none!important}
 @media(min-width:650px){.content{padding:20px}.ordersGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ordersGrid .card{margin:0}.hero{padding:24px}}
+.assignBar{display:none;align-items:center;gap:10px;position:sticky;top:64px;z-index:49;padding:10px 16px;background:rgba(255,200,87,.14);border-bottom:1px solid rgba(255,200,87,.35);color:var(--amber);font-size:12px;font-weight:700}
+.assignBar.show{display:flex}
+.assignBar span{flex:1}
+.assignBar button{border:0;background:var(--amber);color:#2a1f00;font-weight:800;font-size:11px;padding:8px 12px;border-radius:999px}
+.cdchip{display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(255,107,97,.12);color:var(--red);font-size:10px;font-weight:800;white-space:nowrap}
+.card.flash{animation:flashCard 1.6s ease}
+@keyframes flashCard{0%,20%{box-shadow:0 0 0 2px var(--green)}100%{box-shadow:none}}
 </style>
 </head>
 <body>
@@ -67,6 +74,11 @@ a{text-decoration:none;color:inherit}
     <button class="online" id="onlineBtn"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
   </div>
 </header>
+
+<div class="assignBar" id="assignBar" role="status">
+  <span id="assignText">New delivery waiting</span>
+  <button type="button" id="assignBarBtn">View</button>
+</div>
 
 <main class="content">
 <section id="homeView">
@@ -159,12 +171,19 @@ a{text-decoration:none;color:inherit}
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
 (() => {
 'use strict';
 
 const API_BASE='https://eatswada.onrender.com';
 const LOGIN='login.html';
+// Same public Eatswada Firebase project + VAPID key already used by the
+// Vendor portal. This is the public web config, not a secret — access is
+// enforced by backend auth, not by hiding these values.
+const FIREBASE_CONFIG={apiKey:"AIzaSyA0bqVE3RCmiJORcufx-v6Gew16GMCfFp0",authDomain:"eatswada.firebaseapp.com",projectId:"eatswada",storageBucket:"eatswada.firebasestorage.app",messagingSenderId:"644274579271",appId:"1:644274579271:web:ba72c4cd4f81c568fa0e62"};
+const VAPID_KEY='BKad9s8WW_Bfl0CZxH4tSRHyYJZOou5kIOcKBZ40xNmtqHPTVvntKB93BF1DGPQt9U_aQuv5iM1Ui_vNz5Ll-NA';
 const token=localStorage.getItem('riderToken');
 if(!token){ location.href=LOGIN; return; }
 
@@ -247,24 +266,140 @@ function actionFor(o){
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),3000)}
 
 /* ── Alerts (#2) + live location send (#7) ─────────────────────────────
-   Browser notification + a short beep when a NEW delivery is assigned; the
-   rider's GPS is streamed to the backend (throttled) while the app is open. */
-let audioCtx=null;
-function beep(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);const t=audioCtx.currentTime;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.3,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);o.start(t);o.stop(t+0.42);}catch(e){}}
+   Repeating ringtone + vibration while a delivery is waiting to be
+   accepted (adapted from the Vendor portal's Alarm pattern, extended with
+   a per-order 60s countdown since riders — unlike vendor order pickup —
+   are on a hard backend acceptance timeout); the rider's GPS is streamed
+   to the backend (throttled) while the app is open. */
 function ensureNotify(){try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
 function notify(title,body){try{if('Notification'in window&&Notification.permission==='granted')new Notification(title,{body:body||'',tag:'rider-alert',renotify:true});}catch(e){}}
-document.addEventListener('pointerdown',ensureNotify,{once:true});
 
-let seenAssigned=new Set(), firstOrdersLoad=true;
+const Alarm=(function(){
+  let ctx=null,ticker=null,active=false;
+  function unlock(){try{if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)ctx=new AC();}if(ctx&&ctx.state==='suspended')ctx.resume();}catch(e){}}
+  function chime(){
+    if(!ctx)return;
+    const now=ctx.currentTime;
+    [[880,0],[1245,0.18]].forEach(function(pair){
+      const osc=ctx.createOscillator(),gain=ctx.createGain();
+      osc.type='sine';osc.frequency.value=pair[0];osc.connect(gain);gain.connect(ctx.destination);
+      const t=now+pair[1];
+      gain.gain.setValueAtTime(0.0001,t);gain.gain.exponentialRampToValueAtTime(0.4,t+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,t+0.17);
+      osc.start(t);osc.stop(t+0.2);
+    });
+  }
+  function pulse(){chime();try{if(navigator.vibrate)navigator.vibrate([350,130,350]);}catch(e){}}
+  function start(count){
+    unlock();
+    if($('assignText'))$('assignText').textContent=(count>1)?(count+' new deliveries — accept or reject'):'New delivery waiting — accept or reject';
+    if($('assignBar'))$('assignBar').classList.add('show');
+    if(active)return;   // already ringing — label above was just refreshed
+    active=true;pulse();ticker=setInterval(pulse,1600);
+  }
+  function stop(){
+    active=false;
+    if(ticker){clearInterval(ticker);ticker=null;}
+    try{if(navigator.vibrate)navigator.vibrate(0);}catch(e){}
+    if($('assignBar'))$('assignBar').classList.remove('show');
+  }
+  return{start:start,stop:stop,unlock:unlock,isActive:function(){return active;}};
+})();
+
+// id -> ms timestamp this rider's screen first saw the order as 'assigned'.
+// null means "still assigned but we don't know a real start time" (e.g. it
+// was already assigned before this page load) — shown as pending without
+// inventing a countdown number for it. Cleared once the order leaves
+// 'assigned' (accepted / reassigned away), so a later re-assignment of the
+// same order id can alert again — this, plus always re-fetching the live
+// order list on load, is what prevents repeated/duplicate alerts after a
+// refresh without needing to fake a server timestamp.
+let assignedFirstSeen=new Map(), firstOrdersLoad=true;
 function checkNewAssignments(){
   const assignedIds=orders.filter(o=>o.riderStatus==='assigned').map(o=>o.id);
-  const fresh=assignedIds.filter(id=>!seenAssigned.has(id));
-  assignedIds.forEach(id=>seenAssigned.add(id));
-  // Drop ids no longer assigned so a re-assignment later can alert again.
-  seenAssigned.forEach(id=>{if(!assignedIds.includes(id))seenAssigned.delete(id);});
-  if(!firstOrdersLoad && fresh.length){ beep(); notify('New delivery assigned', fresh.length+' order'+(fresh.length>1?'s':'')+' waiting to be accepted.'); }
+  const freshIds=assignedIds.filter(id=>!assignedFirstSeen.has(id));
+  freshIds.forEach(id=>assignedFirstSeen.set(id, firstOrdersLoad?null:Date.now()));
+  // Drop ids no longer assigned so a future re-assignment can alert again.
+  Array.from(assignedFirstSeen.keys()).forEach(id=>{if(!assignedIds.includes(id))assignedFirstSeen.delete(id);});
+  if(assignedIds.length){ Alarm.start(assignedIds.length); }
+  else { Alarm.stop(); }
+  if(!firstOrdersLoad && freshIds.length){
+    notify('New delivery assigned', freshIds.length+' order'+(freshIds.length>1?'s':'')+' waiting to be accepted.');
+  }
   firstOrdersLoad=false;
 }
+function countdownFor(id){
+  const t=assignedFirstSeen.get(id);
+  if(t==null)return null;
+  return Math.max(0,60-Math.floor((Date.now()-t)/1000));
+}
+// Lightweight per-second tick that only touches the countdown chips already
+// in the DOM — avoids re-rendering the whole order list every second.
+setInterval(()=>{
+  if(!assignedFirstSeen.size)return;
+  assignedFirstSeen.forEach((t,id)=>{
+    if(t==null)return;
+    const el=document.getElementById('cd-'+id);
+    if(!el)return;
+    const secs=countdownFor(id);
+    el.textContent=secs>0?(secs+'s to respond'):'Any moment…';
+  });
+},1000);
+
+/* ── Firebase Cloud Messaging ────────────────────────────────────────────
+   Best-effort only: if Firebase, the service worker, or notifications are
+   unavailable/blocked, initPush() quietly does nothing and the app keeps
+   working on polling + the in-app alarm above. */
+async function initPush(){
+  try{
+    if(!('serviceWorker'in navigator)||!('Notification'in window))return;
+    if(typeof firebase==='undefined'||!firebase.messaging)return;
+    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+
+    // Own scope so it never collides with a future PWA app-shell worker at './'.
+    const reg=await navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./fcm/'});
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted')return;
+
+    const messaging=firebase.messaging();
+    const token=await messaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
+    if(token){
+      // Same generic endpoint the Vendor portal already registers device
+      // tokens against (not nested under /vendor) — reused here rather
+      // than inventing a rider-specific one.
+      fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token})}).catch(()=>{});
+    }
+
+    // Foreground: tab is open, so also ring the in-app alarm and refresh.
+    messaging.onMessage(payload=>{
+      const d=(payload&&payload.data)||{};
+      if(d.orderId||d.type==='new_order'){ loadOrders(true); }
+    });
+  }catch(e){ /* push is best-effort — never block the app */ }
+}
+
+// Notification click (from the background service worker) tells the open
+// app which order to jump to; a deep-link query param covers the case
+// where the click had to open a brand-new tab instead of focusing one.
+function highlightOrder(id){
+  if(!id)return;
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelector('.nav button[data-view="homeView"]')?.classList.add('active');
+  ['homeView','earningsView','profileView'].forEach(vid=>$(vid).classList.add('hidden'));
+  $('homeView').classList.remove('hidden');
+  if(filter!=='all'){filter='all';document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render();}
+  const el=document.getElementById('order-'+id);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),2200);}
+}
+if('serviceWorker'in navigator){
+  navigator.serviceWorker.addEventListener('message',e=>{
+    if(e.data&&e.data.type==='order-notification-click')highlightOrder(e.data.orderId);
+  });
+}
+$('assignBarBtn').onclick=()=>{
+  const oldest=orders.find(o=>o.riderStatus==='assigned');
+  if(oldest)highlightOrder(oldest.id);
+};
+document.addEventListener('pointerdown',function firstGesture(){ ensureNotify(); Alarm.unlock(); initPush(); },{once:true});
 
 let lastLocSent=0;
 async function sendLocation(force=false){
@@ -378,8 +513,15 @@ function orderCard(o){
   const navigateBtn=canNavigateCustomer
     ? '<a class="btn" href="'+nav+'" target="_blank" rel="noopener">Navigate to customer</a>'
     : '<button class="btn" disabled>Restaurant location unavailable</button>';
-  return '<article class="card">'+
-    '<div class="orderHead"><div style="display:flex;flex-direction:column;gap:3px"><span class="orderNo">'+esc(o.publicOrderId||o.orderNumber||o.shortId)+'</span>'+(o.publicShipmentId||o.shipmentId?'<small style="font-family:var(--mono,monospace);font-size:10px;color:var(--muted)">Shipment: '+esc(o.publicShipmentId||o.shipmentId)+'</small>':'')+'</div><span class="badge '+(o.riderStatus==='assigned'?'amber':'')+'">'+esc(statusLabel(o.riderStatus))+'</span></div>'+
+  // Countdown reflects when THIS screen first observed the assignment, not
+  // a server timestamp we don't have — so it's only ever shown once we
+  // actually know a start time, never a guessed/fabricated number.
+  const cd=o.riderStatus==='assigned'?countdownFor(o.id):null;
+  const countdownChip=o.riderStatus==='assigned'
+    ?'<span class="cdchip" id="cd-'+esc(o.id)+'">'+(cd!=null?(cd+'s to respond'):'New')+'</span>'
+    :'';
+  return '<article class="card" id="order-'+esc(o.id)+'">'+
+    '<div class="orderHead"><div style="display:flex;flex-direction:column;gap:3px"><span class="orderNo">'+esc(o.publicOrderId||o.orderNumber||o.shortId)+'</span>'+(o.publicShipmentId||o.shipmentId?'<small style="font-family:var(--mono,monospace);font-size:10px;color:var(--muted)">Shipment: '+esc(o.publicShipmentId||o.shipmentId)+'</small>':'')+'</div><div style="display:flex;align-items:center;gap:6px">'+countdownChip+'<span class="badge '+(o.riderStatus==='assigned'?'amber':'')+'">'+esc(statusLabel(o.riderStatus))+'</span></div></div>'+
     '<div class="route">'+
       '<div class="party"><span class="pin">R</span><div><b>'+esc(r.name)+'</b><small>Restaurant location hidden until verified GPS coordinates are available</small></div><a class="phone '+(!r.phone?'missing':'')+'" href="'+(r.phone?'tel:'+esc(r.phone):'#')+'" aria-label="Call restaurant">'+(r.phone?'☎':'No phone')+'</a></div>'+
       '<div class="connector"></div>'+
@@ -453,7 +595,11 @@ function startPolling(){
   refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')refresh(false)},12000);
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh(false)});
-refresh(true);startPolling();
+refresh(true).then(()=>{
+  const deepLinkId=new URLSearchParams(location.search).get('order');
+  if(deepLinkId)highlightOrder(deepLinkId);
+});
+startPolling();
 })();
 </script>
 </body>
