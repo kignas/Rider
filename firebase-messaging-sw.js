@@ -1,4 +1,4 @@
-/* Nearbite Rider — Firebase Cloud Messaging background handler.
+/* Eatswada Rider — Firebase Cloud Messaging background handler.
    Receives delivery-assignment pushes when the rider's tab is closed or the
    screen is locked, and renders the notification itself (the backend sends
    data-only messages, so there is never a duplicate system + in-app alert).
@@ -28,8 +28,6 @@ messaging.onBackgroundMessage(function (payload) {
   const title = d.title || 'New delivery assigned';
   self.registration.showNotification(title, {
     body: d.body || 'Tap to view the order and respond before it reassigns.',
-    icon: './icon-192.png',
-    badge: './icon-192.png',
     // Tagging by orderId means a repeat push for the SAME order replaces the
     // existing notification instead of stacking a second one, while
     // renotify still re-alerts sound/vibration — this is the duplicate
