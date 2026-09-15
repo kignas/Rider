@@ -3,604 +3,108 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f0d">
-<title>Nearbite Rider</title>
+<meta name="theme-color" content="#0b100d">
+<title>Eatswada Rider</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-:root{
-  --bg:#0b0f0d;--surface:#121815;--surface2:#18201b;--surface3:#202a24;
-  --line:#2a342d;--text:#f5f7f5;--muted:#99a39d;--green:#baff45;--green2:#8fca2d;
-  --red:#ff6b61;--amber:#ffc857;--blue:#6bb7ff;
-  --shadow:0 18px 50px rgba(0,0,0,.28);--r:18px;
-}
-*{box-sizing:border-box}
-html{background:var(--bg)}
-body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}
-button,a,input{font:inherit}
-button{cursor:pointer}
-a{text-decoration:none;color:inherit}
-.app{max-width:720px;margin:auto;min-height:100dvh;padding-bottom:92px}
-.top{position:sticky;top:0;z-index:50;background:rgba(11,15,13,.9);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.05);padding:13px 16px}
-.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.brand{display:flex;align-items:center;gap:10px}
-.logo{width:38px;height:38px;border-radius:12px;background:var(--green);color:#0a0e0b;display:grid;place-items:center;font-weight:800;font-family:'Space Grotesk';font-size:19px}
-.brand b{font-family:'Space Grotesk';font-size:17px}.brand span{display:block;color:var(--muted);font-size:11px;margin-top:1px}
-.online{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font-size:12px;font-weight:700}
-.dot{width:8px;height:8px;border-radius:50%;background:#657067}.dot.on{background:var(--green);box-shadow:0 0 10px rgba(186,255,69,.65)}
-.content{padding:16px}
-.hero{background:linear-gradient(145deg,#172119,#101612);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:14px}
-.heroTop{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.avatar{width:52px;height:52px;border-radius:17px;background:var(--surface3);border:1px solid var(--line);overflow:hidden;display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;font-size:21px;color:var(--green)}
-.avatar img{width:100%;height:100%;object-fit:cover}
-.hero h1{font:700 23px 'Space Grotesk';margin:0}.hero p{margin:4px 0 0;color:var(--muted);font-size:12px}
-.toggle{border:0;background:var(--surface3);border:1px solid var(--line);padding:10px 13px;border-radius:999px;color:var(--text);font-weight:700;font-size:12px}
-.toggle.on{background:rgba(186,255,69,.1);border-color:rgba(186,255,69,.35);color:var(--green)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:18px}
-.stat{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:15px;padding:12px}
-.stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.stat strong{display:block;font:600 18px 'Space Grotesk';margin-top:5px}
-.section{margin-top:20px}.sectionHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.sectionHead h2{font:600 14px 'Space Grotesk';margin:0}.count{color:var(--muted);font-size:11px}
-.filters{display:flex;gap:7px;overflow:auto;padding-bottom:3px;margin-bottom:10px}.filter{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:8px 11px;border-radius:999px;font-size:11px;font-weight:700}.filter.active{background:var(--green);color:#0a0e0b;border-color:var(--green)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;margin-bottom:10px;overflow:hidden}
-.orderHead{padding:14px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
-.orderNo{font:600 11px 'Space Grotesk';color:var(--muted)}.badge{font-size:10px;font-weight:800;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:rgba(186,255,69,.1);color:var(--green);border:1px solid rgba(186,255,69,.2)}
-.badge.red{color:var(--red);background:rgba(255,107,97,.08);border-color:rgba(255,107,97,.2)}.badge.amber{color:var(--amber);background:rgba(255,200,87,.08);border-color:rgba(255,200,87,.2)}
-.route{padding:15px}.party{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:start}.pin{width:28px;height:28px;border-radius:10px;background:var(--surface3);display:grid;place-items:center;color:var(--green);font-size:13px;font-weight:800}.party b{display:block;font-size:14px}.party small{display:block;color:var(--muted);line-height:1.4;font-size:11px;margin-top:2px}.connector{height:22px;border-left:1px dashed #48534b;margin:3px 0 3px 14px}
-.phone{font-size:11px;color:var(--green);font-weight:700;white-space:nowrap}.phone.missing{color:var(--muted);font-weight:500}
-.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 15px 14px}.metaBox{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:9px}.metaBox small{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em}.metaBox b{display:block;font-size:12px;margin-top:3px}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 15px 15px}.btn{border:1px solid var(--line);background:var(--surface3);color:var(--text);border-radius:12px;padding:11px 8px;font-weight:700;font-size:11px;text-align:center}.btn.primary{background:var(--green);color:#0a0e0b;border-color:var(--green)}.btn.danger{color:var(--red)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.timeline{display:flex;padding:0 15px 14px;gap:0}.step{flex:1;text-align:center;position:relative;font-size:8px;color:var(--muted)}.step:before{content:"";display:block;width:8px;height:8px;border-radius:50%;background:var(--surface3);border:1px solid var(--line);margin:0 auto 5px;position:relative;z-index:2}.step:after{content:"";position:absolute;top:4px;left:50%;width:100%;height:1px;background:var(--line)}.step:last-child:after{display:none}.step.done{color:var(--green)}.step.done:before{background:var(--green);border-color:var(--green)}.step.done:after{background:var(--green)}
-.empty{padding:28px 18px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:18px;color:var(--muted);font-size:12px}.empty b{display:block;color:var(--text);font-family:'Space Grotesk';margin-bottom:5px}
-.more{width:100%;margin-top:3px}
-.bottom{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(12,16,14,.94);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:flex;justify-content:center}.nav{width:min(720px,100%);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:5px}.nav button{border:0;background:transparent;color:var(--muted);padding:7px 2px;font-size:10px;font-weight:700}.nav button.active{color:var(--green)}.nav i{display:block;font-style:normal;font-size:17px;margin-bottom:2px}
-.toast{position:fixed;z-index:100;left:50%;bottom:92px;transform:translate(-50%,15px);background:#202822;border:1px solid var(--line);padding:11px 15px;border-radius:12px;opacity:0;pointer-events:none;transition:.2s;max-width:calc(100% - 30px);font-size:12px;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
-.modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.72);display:none;align-items:flex-end;padding:12px}.modal.show{display:flex}.sheet{width:min(520px,100%);margin:auto;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px}.sheet h3{font:600 19px 'Space Grotesk';margin:0}.sheet p{color:var(--muted);font-size:12px}.otp{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:18px 0}.otp input{width:100%;height:58px;border-radius:14px;border:1px solid var(--line);background:var(--surface2);color:var(--text);text-align:center;font:600 24px 'Space Grotesk';outline:none}.otp input:focus{border-color:var(--green)}.sheetActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.loading{height:120px;background:linear-gradient(90deg,var(--surface) 25%,#1b241f 50%,var(--surface) 75%);background-size:500px 100%;animation:sh 1.3s infinite;border-radius:20px}@keyframes sh{to{background-position:500px 0}}
-.hidden{display:none!important}
-@media(min-width:650px){.content{padding:20px}.ordersGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ordersGrid .card{margin:0}.hero{padding:24px}}
-.assignBar{display:none;align-items:center;gap:10px;position:sticky;top:64px;z-index:49;padding:10px 16px;background:rgba(255,200,87,.14);border-bottom:1px solid rgba(255,200,87,.35);color:var(--amber);font-size:12px;font-weight:700}
-.assignBar.show{display:flex}
-.assignBar span{flex:1}
-.assignBar button{border:0;background:var(--amber);color:#2a1f00;font-weight:800;font-size:11px;padding:8px 12px;border-radius:999px}
-.cdchip{display:inline-block;padding:3px 8px;border-radius:999px;background:rgba(255,107,97,.12);color:var(--red);font-size:10px;font-weight:800;white-space:nowrap}
-.card.flash{animation:flashCard 1.6s ease}
-@keyframes flashCard{0%,20%{box-shadow:0 0 0 2px var(--green)}100%{box-shadow:none}}
+:root{--bg:#0a0f0c;--surface:#111813;--surface2:#172019;--surface3:#1d2821;--line:#29352d;--text:#f4f7f4;--muted:#8f9b93;--green:#b8ff43;--greenDark:#17310b;--red:#ff7167;--amber:#ffd05c;--blue:#7bb9ff;--shadow:0 22px 60px rgba(0,0,0,.28);--r:20px}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:radial-gradient(circle at 50% -10%,#17241b 0,#0a0f0c 38%);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased}button,a,input,textarea,select{font:inherit}button{cursor:pointer}a{text-decoration:none;color:inherit}.app{max-width:760px;margin:auto;min-height:100dvh;padding-bottom:92px}
+.top{position:sticky;top:0;z-index:50;background:rgba(10,15,12,.88);backdrop-filter:blur(22px);border-bottom:1px solid rgba(255,255,255,.055);padding:12px 16px}.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{display:flex;align-items:center;gap:10px}.logo{width:40px;height:40px;border-radius:13px;background:var(--green);color:#0a0e0b;display:grid;place-items:center;font:700 19px 'Space Grotesk';box-shadow:0 0 24px rgba(184,255,67,.12)}.brand b{display:block;font:700 17px 'Space Grotesk';letter-spacing:-.02em}.brand span{display:block;color:var(--muted);font-size:10px;margin-top:1px}.online{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:9px 11px;border-radius:999px;font-size:11px;font-weight:800}.dot{width:8px;height:8px;border-radius:50%;background:#657067}.dot.on{background:var(--green);box-shadow:0 0 12px rgba(184,255,67,.75)}
+.assignBar{display:none;align-items:center;gap:10px;position:sticky;top:65px;z-index:49;padding:10px 16px;background:rgba(255,208,92,.13);border-bottom:1px solid rgba(255,208,92,.28);color:var(--amber);font-size:12px;font-weight:800}.assignBar.show{display:flex}.assignBar span{flex:1}.assignBar button{border:0;background:var(--amber);color:#2a2100;font-size:11px;font-weight:900;padding:8px 12px;border-radius:999px}
+.content{padding:15px}.hero{border:1px solid var(--line);border-radius:25px;background:linear-gradient(145deg,#17231b,#101711);box-shadow:var(--shadow);padding:18px;margin-bottom:12px}.heroRow{display:flex;align-items:center;justify-content:space-between;gap:12px}.avatar{width:54px;height:54px;border-radius:18px;background:var(--surface3);border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;color:var(--green);font:700 21px 'Space Grotesk'}.avatar img{width:100%;height:100%;object-fit:cover}.hero h1{font:700 23px 'Space Grotesk';margin:0;letter-spacing:-.03em}.hero p{color:var(--muted);font-size:11px;margin:4px 0 0}.toggle{border:1px solid var(--line);background:var(--surface3);color:var(--text);padding:10px 12px;border-radius:999px;font-size:11px;font-weight:800}.toggle.on{background:rgba(184,255,67,.1);border-color:rgba(184,255,67,.3);color:var(--green)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.stat{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:15px;padding:11px}.stat small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.stat strong{display:block;margin-top:4px;font:600 17px 'Space Grotesk'}
+.section{margin-top:18px}.sectionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}.sectionHead h2{font:600 14px 'Space Grotesk';margin:0;letter-spacing:-.01em}.count{font-size:10px;color:var(--muted)}
+.focus{border:1px solid rgba(184,255,67,.28);background:linear-gradient(145deg,rgba(184,255,67,.09),rgba(17,24,19,.95));border-radius:22px;padding:15px;margin-bottom:12px}.focusHead{display:flex;justify-content:space-between;align-items:center;gap:8px}.focusTitle{font:700 12px 'Space Grotesk'}.focusSub{font-size:10px;color:var(--muted);margin-top:2px}.focusActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.filters{display:flex;gap:7px;overflow:auto;padding:1px 0 4px;margin-bottom:9px;scrollbar-width:none}.filters::-webkit-scrollbar{display:none}.filter{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:8px 11px;border-radius:999px;font-size:10px;font-weight:800}.filter.active{background:var(--green);border-color:var(--green);color:#091008}
+.card{background:rgba(17,24,19,.96);border:1px solid var(--line);border-radius:20px;margin-bottom:10px;overflow:hidden}.card.flash{animation:flashCard 1.6s ease}@keyframes flashCard{0%,20%{box-shadow:0 0 0 2px var(--green)}100%{box-shadow:none}}.orderHead{padding:14px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}.orderNo{font:600 11px 'Space Grotesk';color:var(--muted)}.ship{font-size:9px;color:#667169;margin-top:2px}.badge{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;padding:5px 8px;border-radius:999px;background:rgba(184,255,67,.09);color:var(--green);border:1px solid rgba(184,255,67,.18);white-space:nowrap}.badge.red{color:var(--red);background:rgba(255,113,103,.08);border-color:rgba(255,113,103,.2)}.badge.amber{color:var(--amber);background:rgba(255,208,92,.08);border-color:rgba(255,208,92,.2)}
+.route{padding:15px}.party{display:grid;grid-template-columns:31px 1fr auto;gap:10px;align-items:start}.pin{width:29px;height:29px;border-radius:10px;background:var(--surface3);display:grid;place-items:center;color:var(--green);font-size:11px;font-weight:900}.party b{display:block;font-size:13px}.party small{display:block;color:var(--muted);line-height:1.45;font-size:10px;margin-top:2px}.connector{height:19px;border-left:1px dashed #4a564e;margin:2px 0 2px 14px}.phone{font-size:10px;color:var(--green);font-weight:800;white-space:nowrap}.phone.missing{color:var(--muted);font-weight:500}.instructions{margin:0 15px 13px;padding:10px 11px;border-radius:12px;background:rgba(123,185,255,.07);border:1px solid rgba(123,185,255,.16);font-size:10px;color:#c7d9ee}.instructions b{display:block;color:var(--blue);margin-bottom:3px;font-size:9px;text-transform:uppercase;letter-spacing:.07em}.issueMini{margin:0 15px 13px;padding:10px 11px;border-radius:12px;background:rgba(255,208,92,.07);border:1px solid rgba(255,208,92,.2);font-size:10px;color:#e9d79e}.issueMini b{display:block;color:var(--amber);font-size:9px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 15px 14px}.metaBox{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:9px}.metaBox small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.06em}.metaBox b{display:block;font-size:11px;margin-top:3px}.timeline{display:flex;padding:0 15px 14px}.step{flex:1;text-align:center;position:relative;font-size:7px;color:var(--muted)}.step:before{content:"";display:block;width:8px;height:8px;border-radius:50%;background:var(--surface3);border:1px solid var(--line);margin:0 auto 5px;position:relative;z-index:2}.step:after{content:"";position:absolute;top:4px;left:50%;width:100%;height:1px;background:var(--line)}.step:last-child:after{display:none}.step.done{color:var(--green)}.step.done:before{background:var(--green);border-color:var(--green)}.step.done:after{background:var(--green)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 15px 15px}.btn{border:1px solid var(--line);background:var(--surface3);color:var(--text);border-radius:12px;padding:11px 8px;font-weight:800;font-size:10px;text-align:center;min-height:39px}.btn.primary{background:var(--green);color:#091008;border-color:var(--green)}.btn.danger{color:var(--red)}.btn.blue{color:var(--blue)}.btn:disabled{opacity:.48;cursor:not-allowed}.more{width:100%;margin-top:2px}.empty{padding:27px 18px;text-align:center;background:var(--surface);border:1px dashed var(--line);border-radius:18px;color:var(--muted);font-size:11px}.empty b{display:block;color:var(--text);font:600 13px 'Space Grotesk';margin-bottom:5px}.loading{height:150px;background:linear-gradient(90deg,var(--surface) 25%,#1b251f 50%,var(--surface) 75%);background-size:500px 100%;animation:sh 1.3s infinite;border-radius:20px}@keyframes sh{to{background-position:500px 0}}
+.earnHero{padding:20px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(145deg,#18251b,#101711);box-shadow:var(--shadow)}.earnHero small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.earnHero h1{font:700 34px 'Space Grotesk';margin:5px 0 16px}.earnGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.earnBox{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:11px}.earnBox small{font-size:8px}.earnBox b{display:block;font:600 15px 'Space Grotesk';margin-top:4px}.historyRow{padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px}.historyRow small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.historyEarn{font:600 13px 'Space Grotesk';color:var(--green)}
+.profileCard{padding:17px}.profileTop{display:flex;align-items:center;gap:12px}.profileAvatar{width:62px;height:62px;border-radius:20px}.profileTop h2{font:700 18px 'Space Grotesk';margin:0}.profileTop p{font-size:10px;color:var(--muted);margin:4px 0 0}.profileGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}.profileItem{background:var(--surface2);border:1px solid var(--line);border-radius:13px;padding:10px}.profileItem small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.07em}.profileItem b{display:block;font-size:11px;margin-top:4px}.profileActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.bottom{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(10,15,12,.94);backdrop-filter:blur(22px);border-top:1px solid var(--line);display:flex;justify-content:center}.nav{width:min(760px,100%);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:4px}.nav button{border:0;background:transparent;color:var(--muted);padding:7px 2px;font-size:9px;font-weight:800}.nav button.active{color:var(--green)}.nav i{display:block;font-style:normal;font-size:17px;line-height:17px;margin-bottom:3px}
+.toast{position:fixed;z-index:100;left:50%;bottom:94px;transform:translate(-50%,15px);background:#202a23;border:1px solid var(--line);padding:11px 15px;border-radius:13px;opacity:0;pointer-events:none;transition:.2s;max-width:calc(100% - 30px);font-size:11px;text-align:center;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translate(-50%,0)}.modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.74);display:none;align-items:flex-end;padding:12px}.modal.show{display:flex}.sheet{width:min(540px,100%);margin:auto;background:var(--surface);border:1px solid var(--line);border-radius:25px;padding:18px;max-height:88dvh;overflow:auto}.sheet h3{font:600 19px 'Space Grotesk';margin:0}.sheet p{color:var(--muted);font-size:11px;line-height:1.5}.field{margin-top:12px}.field label{display:block;color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:12px;padding:11px 12px;outline:none}.field textarea{min-height:82px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(184,255,67,.5)}.reasonGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}.reason{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:13px;padding:11px 9px;text-align:left;font-size:10px;font-weight:800}.reason.selected{border-color:var(--green);background:rgba(184,255,67,.08);color:var(--green)}.sheetActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.otp{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:18px 0}.otp input{width:100%;height:58px;border-radius:14px;border:1px solid var(--line);background:var(--surface2);color:var(--text);text-align:center;font:600 24px 'Space Grotesk';outline:none}.otp input:focus{border-color:var(--green)}.photoInput{display:none}.hidden{display:none!important}.statusLine{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:9px;margin-top:9px}.statusLine .miniDot{width:6px;height:6px;border-radius:50%;background:#657067}.statusLine .miniDot.on{background:var(--green)}
+@media(min-width:680px){.content{padding:20px}.ordersGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ordersGrid .card{margin:0}.focus{padding:18px}.hero{padding:22px}}
 </style>
 </head>
 <body>
 <div class="app">
-<header class="top">
-  <div class="toprow">
-    <div class="brand"><div class="logo">N</div><div><b>nearbite rider</b><span>delivery operations</span></div></div>
-    <button class="online" id="onlineBtn"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
-  </div>
-</header>
-
-<div class="assignBar" id="assignBar" role="status">
-  <span id="assignText">New delivery waiting</span>
-  <button type="button" id="assignBarBtn">View</button>
-</div>
-
+<header class="top"><div class="toprow"><div class="brand"><div class="logo">E</div><div><b>Eatswada Rider</b><span>Delivery operations</span></div></div><button class="online" id="onlineBtn"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button></div></header>
+<div class="assignBar" id="assignBar"><span id="assignText">New delivery waiting</span><button id="assignBarBtn" type="button">View</button></div>
 <main class="content">
 <section id="homeView">
-  <div class="hero">
-    <div class="heroTop">
-      <div class="brand">
-        <div class="avatar" id="avatar">R</div>
-        <div><h1 id="riderName">Rider</h1><p id="riderMeta">Loading profile…</p></div>
-      </div>
-      <button class="toggle" id="locationBtn">Enable GPS</button>
-    </div>
-    <div class="stats">
-      <div class="stat"><small>Today</small><strong id="todayEarn">₹0</strong></div>
-      <div class="stat"><small>Deliveries</small><strong id="todayCount">0</strong></div>
-      <div class="stat"><small>Active</small><strong id="activeCount">0</strong></div>
-    </div>
-  </div>
-
-  <section class="section">
-    <div class="sectionHead"><h2>Incoming & active deliveries</h2><span class="count" id="orderCount">0</span></div>
-    <div class="filters" id="filters">
-      <button class="filter active" data-filter="all">All</button>
-      <button class="filter" data-filter="assigned">New</button>
-      <button class="filter" data-filter="accepted">Accepted</button>
-      <button class="filter" data-filter="reached_restaurant">Restaurant</button>
-      <button class="filter" data-filter="picked_up">Picked up</button>
-      <button class="filter" data-filter="out_for_delivery">On the way</button>
-    </div>
-    <div id="orders"><div class="loading"></div></div>
-    <button class="btn more hidden" id="loadMore">Load more orders</button>
-  </section>
-
-  <section class="section">
-    <div class="sectionHead"><h2>Recent deliveries</h2><span class="count" id="historyCount">0</span></div>
-    <div id="history"><div class="loading"></div></div>
-    <button class="btn more hidden" id="loadMoreHistory">Load older</button>
-  </section>
+  <div class="hero"><div class="heroRow"><div class="brand"><div class="avatar" id="avatar">R</div><div><h1 id="riderName">Rider</h1><p id="riderMeta">Delivery partner</p><div class="statusLine"><span class="miniDot" id="heroGpsDot"></span><span id="heroGpsText">GPS off</span></div></div></div><button class="toggle" id="locationBtn">Enable GPS</button></div><div class="stats"><div class="stat"><small>Today's earnings</small><strong id="todayEarn">₹0</strong></div><div class="stat"><small>Completed</small><strong id="todayCount">0</strong></div><div class="stat"><small>Active</small><strong id="activeCount">0</strong></div></div></div>
+  <div id="focusWrap"></div>
+  <section class="section"><div class="sectionHead"><h2>Deliveries</h2><span class="count" id="orderCount">0</span></div><div class="filters"><button class="filter active" data-filter="all">All</button><button class="filter" data-filter="assigned">New</button><button class="filter" data-filter="accepted">Accepted</button><button class="filter" data-filter="reached_restaurant">Restaurant</button><button class="filter" data-filter="picked_up">Picked up</button><button class="filter" data-filter="out_for_delivery">On the way</button></div><div id="orders"><div class="loading"></div></div><button class="btn more hidden" id="loadMore">Load more</button></section>
+  <section class="section"><div class="sectionHead"><h2>Recent deliveries</h2><span class="count" id="historyCount">0</span></div><div id="history"><div class="loading"></div></div><button class="btn more hidden" id="loadMoreHistory">Load older</button></section>
 </section>
-
-<section id="earningsView" class="hidden">
-  <div class="sectionHead"><h2>Earnings</h2></div>
-  <div class="hero">
-    <p>Today</p><h1 id="earnBig">₹0</h1>
-    <div class="stats">
-      <div class="stat"><small>Today</small><strong id="eToday">₹0</strong></div>
-      <div class="stat"><small>This week</small><strong id="eWeek">₹0</strong></div>
-      <div class="stat"><small>This month</small><strong id="eMonth">₹0</strong></div>
-    </div>
-  </div>
-</section>
-
-<section id="profileView" class="hidden">
-  <div class="sectionHead"><h2>Rider profile</h2></div>
-  <div class="card" style="padding:18px">
-    <div class="heroTop">
-      <div class="brand"><div class="avatar" id="profileAvatar">R</div><div><h1 id="profileName">Rider</h1><p id="profilePhone">—</p></div></div>
-    </div>
-    <div class="meta" style="padding:18px 0 0">
-      <div class="metaBox"><small>Vehicle</small><b id="profileVehicle">—</b></div>
-      <div class="metaBox"><small>Zone</small><b id="profileZone">—</b></div>
-      <div class="metaBox"><small>GPS</small><b id="profileGps">Off</b></div>
-    </div>
-    <div class="actions" style="padding:18px 0 0"><button class="btn" id="refreshBtn">Refresh</button><button class="btn danger" id="logoutBtn">Log out</button></div>
-  </div>
-</section>
+<section id="earningsView" class="hidden"><div class="sectionHead"><h2>Earnings</h2><span class="count">Verified deliveries only</span></div><div class="earnHero"><small>Today</small><h1 id="earnBig">₹0</h1><div class="earnGrid"><div class="earnBox"><small>Today</small><b id="eToday">₹0</b></div><div class="earnBox"><small>This week</small><b id="eWeek">₹0</b></div><div class="earnBox"><small>This month</small><b id="eMonth">₹0</b></div></div></div><section class="section"><div class="sectionHead"><h2>How your earning is calculated</h2></div><div class="card" style="padding:15px;color:var(--muted);font-size:10px;line-height:1.6">Each completed delivery shows the rider earning recorded on the order. The rider amount includes the configured delivery fee and rider tip; this screen does not invent estimates.</div></section></section>
+<section id="profileView" class="hidden"><div class="sectionHead"><h2>Profile & availability</h2></div><div class="card profileCard"><div class="profileTop"><div class="avatar profileAvatar" id="profileAvatar">R</div><div><h2 id="profileName">Rider</h2><p id="profilePhone">—</p></div></div><div class="profileGrid"><div class="profileItem"><small>Vehicle</small><b id="profileVehicle">—</b></div><div class="profileItem"><small>Vehicle no.</small><b id="profileVehicleNo">—</b></div><div class="profileItem"><small>Delivery zone</small><b id="profileZone">—</b></div><div class="profileItem"><small>GPS</small><b id="profileGps">Off</b></div></div><div class="profileActions"><button class="btn" id="editProfileBtn">Edit profile</button><label class="btn" for="photoInput">Change photo</label><input class="photoInput" id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><button class="btn" id="refreshBtn">Refresh data</button><button class="btn danger" id="logoutBtn">Log out</button></div></div><section class="section"><div class="sectionHead"><h2>Delivery safety</h2></div><div class="card" style="padding:15px;color:var(--muted);font-size:10px;line-height:1.6">If a delivery cannot be completed, use <b style="color:var(--text)">Report delivery issue</b> on the active order. Do not mark an order delivered unless the customer PIN has been verified.</div></section></section>
 </main>
-
-<div class="bottom"><nav class="nav">
-  <button class="active" data-view="homeView"><i>⌂</i>Home</button>
-  <button data-view="earningsView"><i>₹</i>Earnings</button>
-  <button data-view="profileView"><i>◉</i>Profile</button>
-  <button id="navRefresh"><i>↻</i>Refresh</button>
-</nav></div>
+<div class="bottom"><nav class="nav"><button class="active" data-view="homeView"><i>⌂</i>Home</button><button data-view="earningsView"><i>₹</i>Earnings</button><button data-view="profileView"><i>◉</i>Profile</button><button id="navRefresh"><i>↻</i>Refresh</button></nav></div>
 </div>
-
 <div class="toast" id="toast"></div>
-
-<div class="modal" id="otpModal">
-  <div class="sheet">
-    <h3>Confirm delivery</h3>
-    <p>Ask the customer for the 4-digit delivery PIN. The order cannot be completed without it.</p>
-    <div class="otp">
-      <input inputmode="numeric" maxlength="1" id="o0">
-      <input inputmode="numeric" maxlength="1" id="o1">
-      <input inputmode="numeric" maxlength="1" id="o2">
-      <input inputmode="numeric" maxlength="1" id="o3">
-    </div>
-    <div id="otpMsg" style="min-height:18px;text-align:center;font-size:12px;margin-bottom:10px"></div>
-    <div class="sheetActions"><button class="btn" id="closeOtp">Cancel</button><button class="btn primary" id="verifyOtp">Verify PIN</button></div>
-  </div>
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<div class="modal" id="otpModal"><div class="sheet"><h3>Confirm delivery</h3><p>Ask the customer for the 4-digit delivery PIN. The order cannot be completed without it.</p><div class="otp"><input inputmode="numeric" maxlength="1" id="o0"><input inputmode="numeric" maxlength="1" id="o1"><input inputmode="numeric" maxlength="1" id="o2"><input inputmode="numeric" maxlength="1" id="o3"></div><div id="otpMsg" style="min-height:18px;text-align:center;font-size:10px;margin-bottom:10px"></div><div class="sheetActions"><button class="btn" id="closeOtp">Cancel</button><button class="btn primary" id="verifyOtp">Verify PIN</button></div></div></div>
+<div class="modal" id="issueModal"><div class="sheet"><h3>Report delivery issue</h3><p>Record what happened so the customer and delivery operations have an accurate delivery attempt. Reporting an issue does not falsely complete or cancel the order.</p><div class="reasonGrid" id="reasonGrid"></div><div class="field"><label for="issueNote">Additional details (optional)</label><textarea id="issueNote" maxlength="500" placeholder="Example: Called twice, no answer at the gate."></textarea></div><div id="issueMsg" style="min-height:16px;color:var(--red);font-size:10px;margin-top:8px"></div><div class="sheetActions"><button class="btn" id="closeIssue">Cancel</button><button class="btn primary" id="submitIssue">Report issue</button></div></div></div>
+<div class="modal" id="profileModal"><div class="sheet"><h3>Edit rider profile</h3><div class="field"><label>Name</label><input id="editName" maxlength="80"></div><div class="field"><label>Vehicle type</label><select id="editVehicle"><option value="bike">Bike</option><option value="scooter">Scooter</option><option value="cycle">Cycle</option><option value="other">Other</option></select></div><div class="field"><label>Vehicle number</label><input id="editVehicleNo" maxlength="20" autocapitalize="characters"></div><div class="field"><label>Delivery zone</label><input id="editZone" maxlength="100"></div><div id="profileMsg" style="min-height:16px;color:var(--red);font-size:10px;margin-top:8px"></div><div class="sheetActions"><button class="btn" id="closeProfile">Cancel</button><button class="btn primary" id="saveProfile">Save changes</button></div></div></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
-(() => {
-'use strict';
-
-const API_BASE='https://eatswada.onrender.com';
-const LOGIN='login.html';
-// Same public Eatswada Firebase project + VAPID key already used by the
-// Vendor portal. This is the public web config, not a secret — access is
-// enforced by backend auth, not by hiding these values.
+(()=>{'use strict';
+const API_BASE='https://eatswada.onrender.com',LOGIN='login.html';
 const FIREBASE_CONFIG={apiKey:"AIzaSyA0bqVE3RCmiJORcufx-v6Gew16GMCfFp0",authDomain:"eatswada.firebaseapp.com",projectId:"eatswada",storageBucket:"eatswada.firebasestorage.app",messagingSenderId:"644274579271",appId:"1:644274579271:web:ba72c4cd4f81c568fa0e62"};
 const VAPID_KEY='BKad9s8WW_Bfl0CZxH4tSRHyYJZOou5kIOcKBZ40xNmtqHPTVvntKB93BF1DGPQt9U_aQuv5iM1Ui_vNz5Ll-NA';
-const token=localStorage.getItem('riderToken');
-if(!token){ location.href=LOGIN; return; }
-
-const $=id=>document.getElementById(id);
-let profile=null, orders=[], history=[], page=1, historyPage=1, pages=1, historyPages=1;
-let filter='all', otpOrderId=null, gpsWatch=null, riderPos=null, loading=false, historyLoading=false, earningsLoading=false, refreshTimer=null, ordersRequestSeq=0, lastGpsRender=0;
-
-function auth(){return {Authorization:'Bearer '+localStorage.getItem('riderToken')}}
-
-async function api(path,opts={}){
-  const res=await fetch(API_BASE+path,{...opts,headers:{...auth(),...(opts.headers||{})}});
-  let data={}; try{data=await res.json()}catch{}
-  if(res.status===401){localStorage.removeItem('riderToken');localStorage.removeItem('riderUser');location.href=LOGIN;throw Error('Session expired.')}
-  if(!res.ok||data.success===false) throw Error(data.message||'Request failed');
-  return data;
-}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function money(n){return '₹'+Number(n||0).toLocaleString('en-IN')}
-function addr(a){
-  if(!a)return 'Address unavailable';
-  if(typeof a==='string')return a;
-  return [a.house,a.line1,a.street,a.area,a.landmark,a.city,a.pincode].filter(Boolean).join(', ')||'Address unavailable';
-}
-function coordsFrom(o){
-  const a=o?.deliveryAddress;
-  const c=a?.coordinates||a?.location?.coordinates||o?.customerLocation?.coordinates||o?.deliveryCoordinates;
-  if(Array.isArray(c)&&c.length>=2&&Number.isFinite(Number(c[0]))&&Number.isFinite(Number(c[1]))) return {lat:Number(c[1]),lng:Number(c[0])};
-  if(a?.latitude!=null&&a?.longitude!=null)return {lat:Number(a.latitude),lng:Number(a.longitude)};
-  return null;
-}
-function hav(lat1,lon1,lat2,lon2){
-  const R=6371, p=Math.PI/180, dLat=(lat2-lat1)*p,dLon=(lon2-lon1)*p;
-  const x=Math.sin(dLat/2)**2+Math.cos(lat1*p)*Math.cos(lat2*p)*Math.sin(dLon/2)**2;
-  return 2*R*Math.asin(Math.sqrt(x));
-}
-function liveDistance(o){
-  const d=coordsFrom(o);
-  if(!d||!riderPos)return null;
-  return hav(riderPos.lat,riderPos.lng,d.lat,d.lng);
-}
-function restaurant(o){
-  const r=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};
-  const owner=r.owner&&typeof r.owner==='object'?r.owner:{};
-  return {
-    name:o.restaurantName||r.name||r.restaurantName||o.restaurant?.restaurantName||'Restaurant',
-    // Restaurant text locations are intentionally not shown until real GPS coordinates exist.
-    address:'',
-    phone:o.restaurantPhone||r.phone||r.contactNumber||owner.phone||owner.mobile||'',
-    ownerName:owner.name||'Restaurant owner'
-  };
-}
-function customer(o){
-  const c=o.customer&&typeof o.customer==='object'?o.customer:(o.user&&typeof o.user==='object'?o.user:{});
-  const a=o.deliveryAddress||{};
-  return {name:o.customerName||c.name||a.name||'Customer',phone:o.customerPhone||c.phone||a.phone||'',address:addr(a)};
-}
-function normalize(o){
-  const restaurantObj=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};
-  const owner=restaurantObj.owner&&typeof restaurantObj.owner==='object'?restaurantObj.owner:{};
-  return {
-    ...o,
-    id:o._id,
-    shortId:'#'+String(o._id||'').slice(-6).toUpperCase(),
-    publicOrderId:o.publicOrderId||o.orderNumber||'',
-    publicShipmentId:o.publicShipmentId||o.shipmentId||'',
-    restaurantName:o.restaurantName||restaurantObj.name||restaurantObj.restaurantName||'Restaurant',
-    restaurantPhone:o.restaurantPhone||restaurantObj.phone||restaurantObj.contactNumber||owner.phone||''
-  };
-}
-function statusLabel(s){return ({assigned:'New assignment',accepted:'Accepted',reached_restaurant:'At restaurant',picked_up:'Picked up',out_for_delivery:'On the way',delivered:'Delivered',cancelled:'Cancelled'}[s]||s||'Unknown')}
-function actionFor(o){
-  return ({
-    assigned:{type:'accept',label:'Accept'},
-    accepted:{type:'status',next:'reached_restaurant',label:'Arrived at restaurant'},
-    reached_restaurant:{type:'status',next:'picked_up',label:'Picked up'},
-    picked_up:{type:'status',next:'out_for_delivery',label:'Start delivery'},
-    out_for_delivery:{type:'otp',label:'Verify PIN & deliver'}
-  })[o.riderStatus]||null;
-}
-function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),3000)}
-
-/* ── Alerts (#2) + live location send (#7) ─────────────────────────────
-   Repeating ringtone + vibration while a delivery is waiting to be
-   accepted (adapted from the Vendor portal's Alarm pattern, extended with
-   a per-order 60s countdown since riders — unlike vendor order pickup —
-   are on a hard backend acceptance timeout); the rider's GPS is streamed
-   to the backend (throttled) while the app is open. */
-function ensureNotify(){try{if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();}catch(e){}}
-function notify(title,body){try{if('Notification'in window&&Notification.permission==='granted')new Notification(title,{body:body||'',tag:'rider-alert',renotify:true});}catch(e){}}
-
-const Alarm=(function(){
-  let ctx=null,ticker=null,active=false;
-  function unlock(){try{if(!ctx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)ctx=new AC();}if(ctx&&ctx.state==='suspended')ctx.resume();}catch(e){}}
-  function chime(){
-    if(!ctx)return;
-    const now=ctx.currentTime;
-    [[880,0],[1245,0.18]].forEach(function(pair){
-      const osc=ctx.createOscillator(),gain=ctx.createGain();
-      osc.type='sine';osc.frequency.value=pair[0];osc.connect(gain);gain.connect(ctx.destination);
-      const t=now+pair[1];
-      gain.gain.setValueAtTime(0.0001,t);gain.gain.exponentialRampToValueAtTime(0.4,t+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,t+0.17);
-      osc.start(t);osc.stop(t+0.2);
-    });
-  }
-  function pulse(){chime();try{if(navigator.vibrate)navigator.vibrate([350,130,350]);}catch(e){}}
-  function start(count){
-    unlock();
-    if($('assignText'))$('assignText').textContent=(count>1)?(count+' new deliveries — accept or reject'):'New delivery waiting — accept or reject';
-    if($('assignBar'))$('assignBar').classList.add('show');
-    if(active)return;   // already ringing — label above was just refreshed
-    active=true;pulse();ticker=setInterval(pulse,1600);
-  }
-  function stop(){
-    active=false;
-    if(ticker){clearInterval(ticker);ticker=null;}
-    try{if(navigator.vibrate)navigator.vibrate(0);}catch(e){}
-    if($('assignBar'))$('assignBar').classList.remove('show');
-  }
-  return{start:start,stop:stop,unlock:unlock,isActive:function(){return active;}};
-})();
-
-// id -> ms timestamp this rider's screen first saw the order as 'assigned'.
-// null means "still assigned but we don't know a real start time" (e.g. it
-// was already assigned before this page load) — shown as pending without
-// inventing a countdown number for it. Cleared once the order leaves
-// 'assigned' (accepted / reassigned away), so a later re-assignment of the
-// same order id can alert again — this, plus always re-fetching the live
-// order list on load, is what prevents repeated/duplicate alerts after a
-// refresh without needing to fake a server timestamp.
-let assignedFirstSeen=new Map(), firstOrdersLoad=true;
-function checkNewAssignments(){
-  const assignedIds=orders.filter(o=>o.riderStatus==='assigned').map(o=>o.id);
-  const freshIds=assignedIds.filter(id=>!assignedFirstSeen.has(id));
-  freshIds.forEach(id=>assignedFirstSeen.set(id, firstOrdersLoad?null:Date.now()));
-  // Drop ids no longer assigned so a future re-assignment can alert again.
-  Array.from(assignedFirstSeen.keys()).forEach(id=>{if(!assignedIds.includes(id))assignedFirstSeen.delete(id);});
-  if(assignedIds.length){ Alarm.start(assignedIds.length); }
-  else { Alarm.stop(); }
-  if(!firstOrdersLoad && freshIds.length){
-    notify('New delivery assigned', freshIds.length+' order'+(freshIds.length>1?'s':'')+' waiting to be accepted.');
-  }
-  firstOrdersLoad=false;
-}
-function countdownFor(id){
-  const t=assignedFirstSeen.get(id);
-  if(t==null)return null;
-  return Math.max(0,60-Math.floor((Date.now()-t)/1000));
-}
-// Lightweight per-second tick that only touches the countdown chips already
-// in the DOM — avoids re-rendering the whole order list every second.
-setInterval(()=>{
-  if(!assignedFirstSeen.size)return;
-  assignedFirstSeen.forEach((t,id)=>{
-    if(t==null)return;
-    const el=document.getElementById('cd-'+id);
-    if(!el)return;
-    const secs=countdownFor(id);
-    el.textContent=secs>0?(secs+'s to respond'):'Any moment…';
-  });
-},1000);
-
-/* ── Firebase Cloud Messaging ────────────────────────────────────────────
-   Best-effort only: if Firebase, the service worker, or notifications are
-   unavailable/blocked, initPush() quietly does nothing and the app keeps
-   working on polling + the in-app alarm above. */
-async function initPush(){
-  try{
-    if(!('serviceWorker'in navigator)||!('Notification'in window))return;
-    if(typeof firebase==='undefined'||!firebase.messaging)return;
-    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
-
-    // Own scope so it never collides with a future PWA app-shell worker at './'.
-    const reg=await navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./fcm/'});
-    const perm=await Notification.requestPermission();
-    if(perm!=='granted')return;
-
-    const messaging=firebase.messaging();
-    const token=await messaging.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
-    if(token){
-      // Same generic endpoint the Vendor portal already registers device
-      // tokens against (not nested under /vendor) — reused here rather
-      // than inventing a rider-specific one.
-      fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token})}).catch(()=>{});
-    }
-
-    // Foreground: tab is open, so also ring the in-app alarm and refresh.
-    messaging.onMessage(payload=>{
-      const d=(payload&&payload.data)||{};
-      if(d.orderId||d.type==='new_order'){ loadOrders(true); }
-    });
-  }catch(e){ /* push is best-effort — never block the app */ }
-}
-
-// Notification click (from the background service worker) tells the open
-// app which order to jump to; a deep-link query param covers the case
-// where the click had to open a brand-new tab instead of focusing one.
-function highlightOrder(id){
-  if(!id)return;
-  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-  document.querySelector('.nav button[data-view="homeView"]')?.classList.add('active');
-  ['homeView','earningsView','profileView'].forEach(vid=>$(vid).classList.add('hidden'));
-  $('homeView').classList.remove('hidden');
-  if(filter!=='all'){filter='all';document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render();}
-  const el=document.getElementById('order-'+id);
-  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),2200);}
-}
-if('serviceWorker'in navigator){
-  navigator.serviceWorker.addEventListener('message',e=>{
-    if(e.data&&e.data.type==='order-notification-click')highlightOrder(e.data.orderId);
-  });
-}
-$('assignBarBtn').onclick=()=>{
-  const oldest=orders.find(o=>o.riderStatus==='assigned');
-  if(oldest)highlightOrder(oldest.id);
-};
-document.addEventListener('pointerdown',function firstGesture(){ ensureNotify(); Alarm.unlock(); initPush(); },{once:true});
-
-let lastLocSent=0;
-async function sendLocation(force=false){
-  if(!riderPos)return;
-  const now=Date.now();
-  if(!force && now-lastLocSent<15000)return;   // throttle to at most once / 15s
-  lastLocSent=now;
-  try{ await api('/api/riders/location',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:riderPos.lat,lng:riderPos.lng})}); }catch(e){}
-}
-
-async function loadProfile(){
-  const d=await api('/api/riders/profile'); profile=d.data||d;
-  const r=profile; const initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';
-  ['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?'<img src="'+esc(r.avatar)+'" alt="">':esc(initial));
-  $('riderName').textContent=r.name||'Rider';
-  $('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.deliveryZone].filter(Boolean).join(' • ')||'Delivery partner';
-  $('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';
-  $('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';
-  setOnline(!!r.riderDetails?.isOnline,false);
-}
-function setOnline(on,save=true){
-  $('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on);
-  $('locationBtn').textContent=riderPos?'GPS active':'Enable GPS';$('profileGps').textContent=riderPos?'Active':'Off';
-  if(save) toggleOnline(on);
-}
-async function toggleOnline(on){
-  if(on)ensureNotify();
-  try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});toast(on?'You are online':'You are offline');}
-  catch(e){toast(e.message);$('onlineDot').classList.toggle('on',!on);$('onlineText').textContent=!on?'Online':'Offline';$('onlineBtn').classList.toggle('on',!on)}
-}
+if(!localStorage.getItem('riderToken')){location.href=LOGIN;return}
+const $=id=>document.getElementById(id);let profile=null,orders=[],history=[],page=1,historyPage=1,pages=1,historyPages=1,filter='all',otpOrderId=null,issueOrderId=null,selectedIssue='',gpsWatch=null,riderPos=null,loading=false,historyLoading=false,earningsLoading=false,refreshTimer=null,ordersRequestSeq=0;
+const ACTIVE=['assigned','accepted','reached_restaurant','picked_up','out_for_delivery'];
+const REASONS={customer_unreachable:'Customer not answering',customer_unavailable:'Customer unavailable',wrong_address:'Wrong or incomplete address',cannot_reach_location:'Unable to reach location',customer_requested_cancel:'Customer asked to cancel',vehicle_problem:'Vehicle problem',safety_issue:'Safety issue',restaurant_delay:'Restaurant handover delay',other:'Other'};
+function auth(){return{Authorization:'Bearer '+localStorage.getItem('riderToken')}}
+async function api(path,opts={}){const res=await fetch(API_BASE+path,{...opts,headers:{...auth(),...(opts.headers||{})}});let data={};try{data=await res.json()}catch{}if(res.status===401){localStorage.removeItem('riderToken');localStorage.removeItem('riderUser');location.href=LOGIN;throw Error('Session expired.')}if(!res.ok||data.success===false)throw Error(data.message||'Request failed');return data}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(n){return'₹'+Number(n||0).toLocaleString('en-IN')}function addr(a){if(!a)return'Address unavailable';if(typeof a==='string')return a;return[a.house,a.line1,a.street,a.area,a.landmark,a.city,a.pincode].filter(Boolean).join(', ')||'Address unavailable'}
+function coords(a){const c=a?.coordinates||a?.location?.coordinates;if(Array.isArray(c)&&c.length>=2&&Number.isFinite(Number(c[0]))&&Number.isFinite(Number(c[1])))return{lat:Number(c[1]),lng:Number(c[0])};if(a?.latitude!=null&&a?.longitude!=null)return{lat:Number(a.latitude),lng:Number(a.longitude)};return null}
+function hav(a,b,c,d){const R=6371,p=Math.PI/180,x=Math.sin((c-a)*p/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin((d-b)*p/2)**2;return 2*R*Math.asin(Math.sqrt(x))}function liveDistance(o){const d=coords(o.deliveryAddress);return d&&riderPos?hav(riderPos.lat,riderPos.lng,d.lat,d.lng):null}
+function restaurant(o){const r=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};const owner=r.owner&&typeof r.owner==='object'?r.owner:{};return{name:o.restaurantName||r.name||'Restaurant',phone:o.restaurantPhone||r.phone||r.contactNumber||owner.phone||'',location:coords(r.location||r.coordinates)}}
+function customer(o){const c=o.customer&&typeof o.customer==='object'?o.customer:(o.user&&typeof o.user==='object'?o.user:{});const a=o.deliveryAddress||{};return{name:o.customerName||c.name||'Customer',phone:o.customerPhone||c.phone||'',address:addr(a)}}
+function normalize(o){const r=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};return{...o,id:o._id,shortId:'#'+String(o._id||'').slice(-6).toUpperCase(),publicOrderId:o.publicOrderId||o.orderNumber||'',publicShipmentId:o.publicShipmentId||o.shipmentId||'',restaurantName:o.restaurantName||r.name||'Restaurant',restaurantPhone:o.restaurantPhone||r.phone||r.contactNumber||''}}
+function statusLabel(s){return({assigned:'New assignment',accepted:'Accepted',reached_restaurant:'At restaurant',picked_up:'Picked up',out_for_delivery:'On the way',delivered:'Delivered',cancelled:'Cancelled'}[s]||s||'Unknown')}
+function actionFor(o){return({assigned:{type:'accept',label:'Accept delivery'},accepted:{type:'status',next:'reached_restaurant',label:'Arrived at restaurant'},reached_restaurant:{type:'status',next:'picked_up',label:'Picked up'},picked_up:{type:'status',next:'out_for_delivery',label:'Start delivery'},out_for_delivery:{type:'otp',label:'Verify PIN & deliver'}}[o.riderStatus]||null)}
+function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),3200)}
+function notify(title,body){try{if(Notification.permission==='granted')new Notification(title,{body,tag:'eatswada-rider',renotify:true})}catch{}}
+const Alarm=(()=>{let ctx=null,timer=null,active=false;function unlock(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!ctx&&AC)ctx=new AC();if(ctx?.state==='suspended')ctx.resume()}catch{}}function pulse(){if(ctx){const n=ctx.currentTime;[[880,0],[1245,.18]].forEach(([f,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;o.connect(g);g.connect(ctx.destination);const t=n+d;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.17);o.start(t);o.stop(t+.2)})}try{navigator.vibrate?.([300,120,300])}catch{}}return{unlock,start(n){unlock();$('assignText').textContent=n>1?`${n} new deliveries waiting`:'New delivery waiting';$('assignBar').classList.add('show');if(active)return;active=true;pulse();timer=setInterval(pulse,1700)},stop(){active=false;clearInterval(timer);timer=null;try{navigator.vibrate?.(0)}catch{}$('assignBar').classList.remove('show')}}})();
+let firstLoad=true,lastAssigned=new Set();function checkAssignments(){const ids=orders.filter(o=>o.riderStatus==='assigned').map(o=>o.id);const fresh=ids.filter(id=>!lastAssigned.has(id));lastAssigned=new Set(ids);if(ids.length)Alarm.start(ids.length);else Alarm.stop();if(!firstLoad&&fresh.length)notify('New delivery assigned',`${fresh.length} delivery${fresh.length>1?'ies':''} waiting for your response.`);firstLoad=false}
+function assignmentSeconds(o){if(!o.riderAssignedAt)return null;return Math.max(0,60-Math.floor((Date.now()-new Date(o.riderAssignedAt).getTime())/1000))}
+setInterval(()=>{orders.forEach(o=>{if(o.riderStatus==='assigned'){const e=document.getElementById('cd-'+o.id);if(e){const s=assignmentSeconds(o);e.textContent=s==null?'New':s+'s left'}}})},1000);
+async function initPush(){try{if(!('serviceWorker'in navigator)||!('Notification'in window)||typeof firebase==='undefined')return;if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);const reg=await navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./fcm/'});if(Notification.permission==='default')await Notification.requestPermission();if(Notification.permission!=='granted')return;const m=firebase.messaging(),t=await m.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});if(t)fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token:t})}).catch(()=>{});m.onMessage(p=>{const d=p?.data||{};if(d.type==='rider_assignment'){Alarm.start(1);notify('New delivery assigned',d.body||'A new delivery is waiting.');loadOrders(true)}else if(d.type==='delivery_issue'||d.orderId){loadOrders(true)}})}catch{}}
+function highlightOrder(id){if(!id)return;showView('homeView');filter='all';document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render();setTimeout(()=>{const e=document.getElementById('order-'+id);if(e){e.scrollIntoView({behavior:'smooth',block:'center'});e.classList.add('flash');setTimeout(()=>e.classList.remove('flash'),2200)}},50)}
+if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='order-notification-click')highlightOrder(e.data.orderId)});
+$('assignBarBtn').onclick=()=>{const o=orders.find(x=>x.riderStatus==='assigned');if(o)highlightOrder(o.id)};document.addEventListener('pointerdown',()=>{Alarm.unlock();initPush();try{if(Notification.permission==='default')Notification.requestPermission()}catch{}},{once:true});
+let lastLoc=0;async function sendLocation(force=false){if(!riderPos)return;const now=Date.now();if(!force&&now-lastLoc<15000)return;lastLoc=now;try{await api('/api/riders/location',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:riderPos.lat,lng:riderPos.lng})})}catch{}}
+async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.deliveryZone].filter(Boolean).join(' • ')||'Delivery partner';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false)}
+function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on)}async function toggleOnline(on){if(on){Alarm.unlock();try{if(Notification.permission==='default')await Notification.requestPermission()}catch{}}try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});setOnlineUI(on);toast(on?'You are online':'You are offline')}catch(e){toast(e.message)}}
 $('onlineBtn').onclick=()=>toggleOnline(!$('onlineDot').classList.contains('on'));
-
-function startGPS(){
-  if(!navigator.geolocation){toast('GPS is not supported on this phone.');return}
-  if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;riderPos=null;$('locationBtn').textContent='Enable GPS';$('profileGps').textContent='Off';render();return}
-  $('locationBtn').textContent='Locating…';
-  gpsWatch=navigator.geolocation.watchPosition(p=>{
-    riderPos={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};
-    $('locationBtn').textContent='GPS active';$('profileGps').textContent='Active';render();
-    sendLocation();
-  },e=>{gpsWatch=null;toast(e.message||'GPS permission denied');$('locationBtn').textContent='Enable GPS'},{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
-}
-$('locationBtn').onclick=startGPS;
-
-async function loadOrders(reset=true){
-  if(loading)return false;
-  loading=true;
-  const requestSeq=++ordersRequestSeq;
-  if(reset){page=1}
-  try{
-    const d=await api('/api/riders/orders?page='+page+'&limit=20&activeOnly=true');
-    // Never let an older HTTP response repaint a newer order state.
-    if(requestSeq!==ordersRequestSeq)return false;
-    const got=(d.data?.orders||[]).map(normalize);
-    orders=reset?got:[...orders,...got.filter(x=>!orders.some(y=>y.id===x.id))];
-    pages=Number(d.data?.pages||1);
-    $('loadMore').classList.toggle('hidden',page>=pages);
-    render();
-    checkNewAssignments();
-    sendLocation();
-    return true;
-  }catch(e){
-    if(requestSeq===ordersRequestSeq){
-      $('orders').innerHTML='<div class="empty"><b>Could not load orders</b>'+esc(e.message)+'</div>';
-    }
-    return false;
-  }finally{loading=false}
-}
-async function loadHistory(reset=true){
-  if(historyLoading)return;historyLoading=true;
-  if(reset)historyPage=1;
-  try{
-    const d=await api('/api/riders/orders/history?page='+historyPage+'&limit=20');
-    const got=(d.data?.orders||[]).map(normalize);
-    history=reset?got:[...history,...got.filter(x=>!history.some(y=>y.id===x.id))];
-    historyPages=Number(d.data?.pages||1);$('historyCount').textContent=d.data?.total??history.length;
-    $('loadMoreHistory').classList.toggle('hidden',historyPage>=historyPages);renderHistory();
-  }catch(e){$('history').innerHTML='<div class="empty"><b>Could not load history</b>'+esc(e.message)+'</div>'}
-  finally{historyLoading=false}
-}
-async function loadEarnings(){
-  if(earningsLoading)return;
-  earningsLoading=true;
-  try{
-    const d=await api('/api/riders/earnings'),x=d.data;
-    $('todayEarn').textContent=money(x.today.earnings);$('todayCount').textContent=x.today.deliveries;
-    $('earnBig').textContent=money(x.today.earnings);$('eToday').textContent=money(x.today.earnings);$('eWeek').textContent=money(x.thisWeek.earnings);$('eMonth').textContent=money(x.thisMonth.earnings);
-  }catch{}
-  finally{earningsLoading=false}
-}
-function render(){
-  const visible=orders.filter(o=>filter==='all'||o.riderStatus===filter);
-  const active=orders.filter(o=>['assigned','accepted','reached_restaurant','picked_up','out_for_delivery'].includes(o.riderStatus));
-  $('activeCount').textContent=active.length;$('orderCount').textContent=visible.length;
-  if(!visible.length){$('orders').innerHTML='<div class="empty"><b>No '+(filter==='all'?'open':'matching')+' deliveries</b>New assignments will appear automatically.</div>';return}
-  $('orders').innerHTML='<div class="ordersGrid">'+visible.map(orderCard).join('')+'</div>';
-  document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>doAction(b.dataset.action,b.dataset.id,b));
-}
-function timeline(s){
-  const all=['assigned','accepted','reached_restaurant','picked_up','out_for_delivery'];
-  const idx=all.indexOf(s);
-  return '<div class="timeline">'+all.map((x,i)=>'<div class="step '+(i<=idx?'done':'')+'">'+statusLabel(x).replace('New assignment','Assigned')+'</div>').join('')+'</div>';
-}
-function orderCard(o){
-  const r=restaurant(o),c=customer(o),a=actionFor(o),live=liveDistance(o);
-  const dist=live!=null?live.toFixed(1)+' km':(o.deliveryDistance??o.distanceKm??o.distance!=null?String(o.deliveryDistance??o.distanceKm??o.distance)+' km':'—');
-  // Only navigate to the customer after pickup. Never navigate to the restaurant
-  // using its old text address because that location may be fake.
-  const canNavigateCustomer=o.riderStatus==='picked_up'||o.riderStatus==='out_for_delivery';
-  const nav='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(c.address);
-  const navigateBtn=canNavigateCustomer
-    ? '<a class="btn" href="'+nav+'" target="_blank" rel="noopener">Navigate to customer</a>'
-    : '<button class="btn" disabled>Restaurant location unavailable</button>';
-  // Countdown reflects when THIS screen first observed the assignment, not
-  // a server timestamp we don't have — so it's only ever shown once we
-  // actually know a start time, never a guessed/fabricated number.
-  const cd=o.riderStatus==='assigned'?countdownFor(o.id):null;
-  const countdownChip=o.riderStatus==='assigned'
-    ?'<span class="cdchip" id="cd-'+esc(o.id)+'">'+(cd!=null?(cd+'s to respond'):'New')+'</span>'
-    :'';
-  return '<article class="card" id="order-'+esc(o.id)+'">'+
-    '<div class="orderHead"><div style="display:flex;flex-direction:column;gap:3px"><span class="orderNo">'+esc(o.publicOrderId||o.orderNumber||o.shortId)+'</span>'+(o.publicShipmentId||o.shipmentId?'<small style="font-family:var(--mono,monospace);font-size:10px;color:var(--muted)">Shipment: '+esc(o.publicShipmentId||o.shipmentId)+'</small>':'')+'</div><div style="display:flex;align-items:center;gap:6px">'+countdownChip+'<span class="badge '+(o.riderStatus==='assigned'?'amber':'')+'">'+esc(statusLabel(o.riderStatus))+'</span></div></div>'+
-    '<div class="route">'+
-      '<div class="party"><span class="pin">R</span><div><b>'+esc(r.name)+'</b><small>Restaurant location hidden until verified GPS coordinates are available</small></div><a class="phone '+(!r.phone?'missing':'')+'" href="'+(r.phone?'tel:'+esc(r.phone):'#')+'" aria-label="Call restaurant">'+(r.phone?'☎':'No phone')+'</a></div>'+
-      '<div class="connector"></div>'+
-      '<div class="party"><span class="pin">C</span><div><b>'+esc(c.name)+'</b><small>'+esc(c.address)+'</small></div><a class="phone '+(!c.phone?'missing':'')+'" href="'+(c.phone?'tel:'+esc(c.phone):'#')+'">'+(c.phone?'☎ '+esc(c.phone):'No phone')+'</a></div>'+
-    '</div>'+
-    '<div class="meta"><div class="metaBox"><small>Rider → customer</small><b>'+esc(dist)+'</b></div><div class="metaBox"><small>Earn</small><b>'+money(o.riderEarning)+'</b></div><div class="metaBox"><small>Items</small><b>'+((o.items||[]).reduce((n,i)=>n+Number(i.quantity||1),0))+'</b></div></div>'+
-    timeline(o.riderStatus)+
-    '<div class="actions">'+navigateBtn+
-    (c.phone?'<a class="btn" href="tel:'+esc(c.phone)+'">Call customer</a>':'<button class="btn" disabled>Call customer</button>')+
-    (r.phone?'<a class="btn" href="tel:'+esc(r.phone)+'">Call restaurant</a>':'<button class="btn" disabled>Call restaurant</button>')+
-    (a?'<button class="btn '+(a.type==='accept'||a.type==='otp'?'primary':'')+'" data-action="'+a.type+':'+(a.next||'')+'" data-id="'+esc(o.id)+'">'+esc(a.label)+'</button>':'')+
-    '</div></article>';
-}
-function renderHistory(){
-  if(!history.length){$('history').innerHTML='<div class="empty"><b>No completed deliveries</b>Your delivery history will appear here.</div>';return}
-  $('history').innerHTML=history.map(o=>{
-    const r=restaurant(o);return '<div class="card"><div class="orderHead"><div style="display:flex;flex-direction:column;gap:3px"><span class="orderNo">'+esc(o.publicOrderId||o.orderNumber||o.shortId)+'</span>'+(o.publicShipmentId||o.shipmentId?'<small style="font-family:var(--mono,monospace);font-size:10px;color:var(--muted)">Shipment: '+esc(o.publicShipmentId||o.shipmentId)+'</small>':'')+'</div><span class="badge '+(o.status==='cancelled'?'red':'')+'">'+esc(o.status==='cancelled'?'Cancelled':'Delivered')+'</span></div><div style="padding:14px 15px;display:flex;justify-content:space-between;gap:10px"><div><b>'+esc(r.name)+'</b><small style="display:block;color:var(--muted);font-size:11px;margin-top:4px">'+new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})+'</small></div><b style="color:var(--green)">'+(o.status==='cancelled'?'—':money(o.riderEarning))+'</b></div></div>'
-  }).join('');
-}
-async function doAction(kind,id,btn){
-  const [type,next]=kind.split(':');
-  if(type==='otp'){openOtp(id);return}
-  btn.disabled=true;const old=btn.textContent;btn.textContent='Working…';
-  ordersRequestSeq++;
-  try{
-    if(type==='accept') await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'accepted'})});
-    else await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});
-    toast(type==='accept'?'Order accepted':'Order updated');
-    await Promise.all([loadOrders(true),loadEarnings()]);
-  }catch(e){toast(e.message);btn.disabled=false;btn.textContent=old}
-}
-function openOtp(id){
-  otpOrderId=id;$('otpMsg').textContent='';$('otpModal').classList.add('show');
-  ['o0','o1','o2','o3'].forEach(x=>$(x).value='');$('o0').focus();
-}
-$('closeOtp').onclick=()=>{$('otpModal').classList.remove('show');otpOrderId=null};
-['o0','o1','o2','o3'].forEach((id,i)=>$(id).addEventListener('input',e=>{
-  e.target.value=e.target.value.replace(/\D/g,'').slice(0,1);if(e.target.value&&i<3)$('o'+(i+1)).focus()
-}));
-$('verifyOtp').onclick=async()=>{
-  const otp=['o0','o1','o2','o3'].map(x=>$(x).value).join('');
-  if(otp.length!==4){$('otpMsg').textContent='Enter all 4 digits.';return}
-  const b=$('verifyOtp');b.disabled=true;b.textContent='Verifying…';$('otpMsg').textContent='';
-  try{
-    await api('/api/riders/orders/'+otpOrderId+'/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp})});
-    $('otpMsg').textContent='PIN verified. Completing delivery…';
-    await api('/api/riders/orders/'+otpOrderId+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'delivered'})});
-    $('otpModal').classList.remove('show');otpOrderId=null;toast('Delivery completed 🎉');await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()]);
-  }catch(e){$('otpMsg').textContent=e.message}
-  finally{b.disabled=false;b.textContent='Verify PIN'}
-};
-document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});
-$('loadMore').onclick=async()=>{page++;await loadOrders(false)}
-$('loadMoreHistory').onclick=async()=>{historyPage++;await loadHistory(false)}
-$('refreshBtn').onclick=()=>refresh(true);$('navRefresh').onclick=()=>refresh(true);
-document.querySelectorAll('.nav button[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');['homeView','earningsView','profileView'].forEach(id=>$(id).classList.add('hidden'));$(b.dataset.view).classList.remove('hidden')});
-$('logoutBtn').onclick=()=>{if(confirm('Log out of Nearbite Rider?')){localStorage.removeItem('riderToken');localStorage.removeItem('riderUser');location.href=LOGIN}};
-
-async function refresh(full=false){
-  try{
-    if(full){
-      await loadProfile();
-      await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()]);
-    }else{
-      await loadOrders(true);
-    }
-  }catch(e){toast(e.message)}
-}
-function startPolling(){
-  clearInterval(refreshTimer);
-  refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')refresh(false)},12000);
-}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh(false)});
-refresh(true).then(()=>{
-  const deepLinkId=new URLSearchParams(location.search).get('order');
-  if(deepLinkId)highlightOrder(deepLinkId);
-});
-startPolling();
+function updateGpsUI(){const on=!!riderPos;$('locationBtn').textContent=on?'GPS active':'Enable GPS';$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`GPS active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'GPS off'}
+function startGPS(){if(!navigator.geolocation){toast('GPS is not supported on this phone.');return}if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;riderPos=null;updateGpsUI();render();return}$('locationBtn').textContent='Locating…';gpsWatch=navigator.geolocation.watchPosition(p=>{riderPos={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy};updateGpsUI();render();sendLocation()},e=>{gpsWatch=null;toast(e.message||'GPS permission denied');updateGpsUI()},{enableHighAccuracy:true,maximumAge:10000,timeout:15000})}$('locationBtn').onclick=startGPS;
+async function loadOrders(reset=true){if(loading)return false;loading=true;const seq=++ordersRequestSeq;if(reset)page=1;try{const d=await api('/api/riders/orders?page='+page+'&limit=20&activeOnly=true');if(seq!==ordersRequestSeq)return false;const got=(d.data?.orders||[]).map(normalize);orders=reset?got:[...orders,...got.filter(x=>!orders.some(y=>y.id===x.id))];pages=Number(d.data?.pages||1);$('loadMore').classList.toggle('hidden',page>=pages);render();checkAssignments();sendLocation();return true}catch(e){if(seq===ordersRequestSeq)$('orders').innerHTML=`<div class="empty"><b>Could not load deliveries</b>${esc(e.message)}</div>`;return false}finally{loading=false}}
+async function loadHistory(reset=true){if(historyLoading)return;historyLoading=true;if(reset)historyPage=1;try{const d=await api('/api/riders/orders/history?page='+historyPage+'&limit=20');const got=(d.data?.orders||[]).map(normalize);history=reset?got:[...history,...got.filter(x=>!history.some(y=>y.id===x.id))];historyPages=Number(d.data?.pages||1);$('historyCount').textContent=d.data?.total??history.length;$('loadMoreHistory').classList.toggle('hidden',historyPage>=historyPages);renderHistory()}catch(e){$('history').innerHTML=`<div class="empty"><b>Could not load history</b>${esc(e.message)}</div>`}finally{historyLoading=false}}
+async function loadEarnings(){if(earningsLoading)return;earningsLoading=true;try{const d=await api('/api/riders/earnings'),x=d.data;$('todayEarn').textContent=money(x.today.earnings);$('todayCount').textContent=x.today.deliveries;$('earnBig').textContent=money(x.today.earnings);$('eToday').textContent=money(x.today.earnings);$('eWeek').textContent=money(x.thisWeek.earnings);$('eMonth').textContent=money(x.thisMonth.earnings)}catch{}finally{earningsLoading=false}}
+function navUrl(c){return c?`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat+','+c.lng)}`:null}function addressNav(o){const c=coords(o.deliveryAddress);return c?navUrl(c):`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr(o.deliveryAddress))}`}
+function timeline(s){const all=['assigned','accepted','reached_restaurant','picked_up','out_for_delivery'];const idx=all.indexOf(s);return'<div class="timeline">'+all.map((x,i)=>`<div class="step ${i<=idx?'done':''}">${statusLabel(x).replace('New assignment','Assigned')}</div>`).join('')+'</div>'}
+function issueMarkup(o){const i=o.deliveryIssue;if(!i||i.status!=='reported')return'';return`<div class="issueMini"><b>Delivery issue reported</b>${esc(i.reason)}${i.note?` — ${esc(i.note)}`:''}</div>`}
+function instructionsMarkup(o){const text=o.deliveryInstructions||o.restaurantNote;if(!text)return'';return`<div class="instructions"><b>Delivery note</b>${esc(text)}</div>`}
+function orderCard(o){const r=restaurant(o),c=customer(o),a=actionFor(o),live=liveDistance(o),serverDist=o.deliveryDistanceKm??o.deliveryDistance??o.distanceKm;const dist=live!=null?live.toFixed(1)+' km live':serverDist!=null?Number(serverDist).toFixed(1)+' km':'—';const canCustomerNav=['picked_up','out_for_delivery'].includes(o.riderStatus);const restaurantNav=r.location&&o.riderStatus!=='assigned'?navUrl(r.location):null;const cd=o.riderStatus==='assigned'?assignmentSeconds(o):null;const chip=o.riderStatus==='assigned'?`<span class="badge amber" id="cd-${esc(o.id)}">${cd==null?'New':cd+'s left'}</span>`:`<span class="badge">${esc(statusLabel(o.riderStatus))}</span>`;return`<article class="card" id="order-${esc(o.id)}"><div class="orderHead"><div><div class="orderNo">${esc(o.publicOrderId||o.shortId)}</div>${o.publicShipmentId||o.shipmentId?`<div class="ship">Shipment ${esc(o.publicShipmentId||o.shipmentId)}</div>`:''}</div>${chip}</div><div class="route"><div class="party"><span class="pin">R</span><div><b>${esc(r.name)}</b><small>${r.location?'Restaurant location available for navigation':'Restaurant navigation unavailable'}</small></div>${r.phone?`<a class="phone" href="tel:${esc(r.phone)}">Call</a>`:'<span class="phone missing">No phone</span>'}</div><div class="connector"></div><div class="party"><span class="pin">C</span><div><b>${esc(c.name)}</b><small>${esc(c.address)}</small></div>${c.phone?`<a class="phone" href="tel:${esc(c.phone)}">Call</a>`:'<span class="phone missing">No phone</span>'}</div></div>${instructionsMarkup(o)}${issueMarkup(o)}<div class="meta"><div class="metaBox"><small>Distance</small><b>${esc(dist)}</b></div><div class="metaBox"><small>Rider earning</small><b>${money(o.riderEarning)}</b></div><div class="metaBox"><small>Items</small><b>${(o.items||[]).reduce((n,i)=>n+Number(i.quantity||1),0)}</b></div></div>${timeline(o.riderStatus)}<div class="actions">${canCustomerNav?`<a class="btn" href="${addressNav(o)}" target="_blank" rel="noopener">Navigate customer</a>`:restaurantNav?`<a class="btn" href="${restaurantNav}" target="_blank" rel="noopener">Navigate restaurant</a>`:'<button class="btn" disabled>Navigation unavailable</button>'}${c.phone?`<a class="btn" href="tel:${esc(c.phone)}">Call customer</a>`:'<button class="btn" disabled>Customer phone unavailable</button>'}${r.phone?`<a class="btn" href="tel:${esc(r.phone)}">Call restaurant</a>`:'<button class="btn" disabled>Restaurant phone unavailable</button>'}${['picked_up','out_for_delivery'].includes(o.riderStatus)?`<button class="btn danger" data-issue="${esc(o.id)}">Report issue</button>`:''}${a?`<button class="btn ${a.type==='accept'||a.type==='otp'?'primary':''}" data-action="${a.type}:${a.next||''}" data-id="${esc(o.id)}">${esc(a.label)}</button>`:''}<button class="btn blue" data-copy="${esc(o.publicOrderId||o.shortId)}">Copy order ID</button></div></article>`}
+function render(){const visible=orders.filter(o=>filter==='all'||o.riderStatus===filter),active=orders.filter(o=>ACTIVE.includes(o.riderStatus));$('activeCount').textContent=active.length;$('orderCount').textContent=visible.length;renderFocus(active[0]||null);if(!visible.length){$('orders').innerHTML=`<div class="empty"><b>No ${filter==='all'?'open':'matching'} deliveries</b>New assignments will appear here automatically.</div>`;return}$('orders').innerHTML='<div class="ordersGrid">'+visible.map(orderCard).join('')+'</div>';document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>doAction(b.dataset.action,b.dataset.id,b));document.querySelectorAll('[data-issue]').forEach(b=>b.onclick=()=>openIssue(b.dataset.issue));document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.copy);toast('Order ID copied')}catch{toast(b.dataset.copy)}})}
+function renderFocus(o){if(!o){$('focusWrap').innerHTML='';return}const c=customer(o),a=actionFor(o),live=liveDistance(o);$('focusWrap').innerHTML=`<div class="focus"><div class="focusHead"><div><div class="focusTitle">${o.riderStatus==='out_for_delivery'?'Current delivery':'Active delivery'} · ${esc(o.publicOrderId||o.shortId)}</div><div class="focusSub">${esc(c.name)} · ${live!=null?live.toFixed(1)+' km away':'Distance unavailable'}</div></div><span class="badge">${esc(statusLabel(o.riderStatus))}</span></div><div class="focusActions">${['picked_up','out_for_delivery'].includes(o.riderStatus)?`<a class="btn primary" href="${addressNav(o)}" target="_blank" rel="noopener">Open navigation</a>`:a?`<button class="btn primary" data-action="${a.type}:${a.next||''}" data-id="${esc(o.id)}">${esc(a.label)}</button>`:'<button class="btn" disabled>In progress</button>'}<button class="btn danger" data-issue="${esc(o.id)}">Report delivery issue</button></div></div>`;document.querySelectorAll('#focusWrap [data-action]').forEach(b=>b.onclick=()=>doAction(b.dataset.action,b.dataset.id,b));document.querySelectorAll('#focusWrap [data-issue]').forEach(b=>b.onclick=()=>openIssue(b.dataset.issue))}
+function renderHistory(){if(!history.length){$('history').innerHTML='<div class="empty"><b>No completed deliveries</b>Your delivered and cancelled orders will appear here.</div>';return}$('history').innerHTML=history.map(o=>{const r=restaurant(o),cancel=o.status==='cancelled';return`<div class="card"><div class="orderHead"><div><div class="orderNo">${esc(o.publicOrderId||o.shortId)}</div><div class="ship">${esc(r.name)}</div></div><span class="badge ${cancel?'red':''}">${cancel?'Cancelled':'Delivered'}</span></div><div class="historyRow"><div><b>${esc(r.name)}</b><small>${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}</small></div><b class="historyEarn">${cancel?'—':money(o.riderEarning)}</b></div>${o.deliveryIssue?.status==='reported'?`<div class="issueMini" style="margin:0 15px 13px"><b>Last issue</b>${esc(o.deliveryIssue.reason)}${o.deliveryIssue.note?' — '+esc(o.deliveryIssue.note):''}</div>`:''}</div>`}).join('')}
+async function doAction(kind,id,btn){const[type,next]=kind.split(':');if(type==='otp'){openOtp(id);return}btn.disabled=true;const old=btn.textContent;btn.textContent='Working…';try{await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:type==='accept'?'accepted':next})});toast(type==='accept'?'Delivery accepted':'Delivery updated');await Promise.all([loadOrders(true),loadEarnings()])}catch(e){toast(e.message);btn.disabled=false;btn.textContent=old}}
+function openOtp(id){otpOrderId=id;$('otpMsg').textContent='';$('otpModal').classList.add('show');['o0','o1','o2','o3'].forEach(x=>$(x).value='');$('o0').focus()}$('closeOtp').onclick=()=>{$('otpModal').classList.remove('show');otpOrderId=null};['o0','o1','o2','o3'].forEach((id,i)=>$(id).addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,1);if(e.target.value&&i<3)$('o'+(i+1)).focus()}));
+$('verifyOtp').onclick=async()=>{const otp=['o0','o1','o2','o3'].map(x=>$(x).value).join('');if(otp.length!==4){$('otpMsg').textContent='Enter all 4 digits.';return}const b=$('verifyOtp');b.disabled=true;b.textContent='Verifying…';try{await api('/api/riders/orders/'+otpOrderId+'/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp})});await api('/api/riders/orders/'+otpOrderId+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'delivered'})});$('otpModal').classList.remove('show');otpOrderId=null;toast('Delivery completed 🎉');await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()])}catch(e){$('otpMsg').textContent=e.message}finally{b.disabled=false;b.textContent='Verify PIN'}};
+function openIssue(id){const o=orders.find(x=>x.id===id);if(!o)return;issueOrderId=id;selectedIssue='';$('issueNote').value='';$('issueMsg').textContent='';$('reasonGrid').innerHTML=Object.entries(REASONS).map(([k,v])=>`<button type="button" class="reason" data-reason="${k}">${v}</button>`).join('');document.querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{selectedIssue=b.dataset.reason;document.querySelectorAll('[data-reason]').forEach(x=>x.classList.toggle('selected',x===b))});$('issueModal').classList.add('show')}
+$('closeIssue').onclick=()=>{$('issueModal').classList.remove('show');issueOrderId=null};$('submitIssue').onclick=async()=>{if(!selectedIssue){$('issueMsg').textContent='Select a reason first.';return}const b=$('submitIssue');b.disabled=true;b.textContent='Saving…';$('issueMsg').textContent='';try{await api('/api/riders/orders/'+issueOrderId+'/delivery-issue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reasonCode:selectedIssue,note:$('issueNote').value.trim()})});$('issueModal').classList.remove('show');toast('Issue recorded. Customer updated.');issueOrderId=null;await loadOrders(true)}catch(e){$('issueMsg').textContent=e.message}finally{b.disabled=false;b.textContent='Report issue'}};
+function showView(id){['homeView','earningsView','profileView'].forEach(x=>$(x).classList.toggle('hidden',x!==id));document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id))}document.querySelectorAll('.nav button[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});$('loadMore').onclick=async()=>{page++;await loadOrders(false)};$('loadMoreHistory').onclick=async()=>{historyPage++;await loadHistory(false)};$('refreshBtn').onclick=()=>refresh(true);$('navRefresh').onclick=()=>refresh(true);
+$('editProfileBtn').onclick=()=>{const r=profile||{};$('editName').value=r.name||'';$('editVehicle').value=r.riderDetails?.vehicleType||'bike';$('editVehicleNo').value=r.riderDetails?.vehicleNumber||'';$('editZone').value=r.riderDetails?.deliveryZone||'';$('profileMsg').textContent='';$('profileModal').classList.add('show')};$('closeProfile').onclick=()=>$('profileModal').classList.remove('show');$('saveProfile').onclick=async()=>{const b=$('saveProfile');b.disabled=true;b.textContent='Saving…';try{await api('/api/riders/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('editName').value.trim(),vehicleType:$('editVehicle').value,vehicleNumber:$('editVehicleNo').value.trim(),deliveryZone:$('editZone').value.trim()})});$('profileModal').classList.remove('show');toast('Profile updated');await loadProfile()}catch(e){$('profileMsg').textContent=e.message}finally{b.disabled=false;b.textContent='Save changes'}};
+$('photoInput').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;const fd=new FormData();fd.append('photo',f);try{await api('/api/riders/profile/photo',{method:'PUT',body:fd});toast('Profile photo updated');await loadProfile()}catch(err){toast(err.message)}e.target.value=''};
+$('logoutBtn').onclick=()=>{if(confirm('Log out of Eatswada Rider?')){localStorage.removeItem('riderToken');localStorage.removeItem('riderUser');location.href=LOGIN}};
+async function refresh(full=false){try{if(full){await loadProfile();await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()])}else await loadOrders(true)}catch(e){toast(e.message)}}function startPolling(){clearInterval(refreshTimer);refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')refresh(false)},12000)}document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh(false)});
+refresh(true).then(()=>{const id=new URLSearchParams(location.search).get('order');if(id)highlightOrder(id);initPush()});startPolling();
 })();
 </script>
-</body>
-</html>
+</body></html>
