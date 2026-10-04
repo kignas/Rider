@@ -1,0 +1,164 @@
+/* Eatswada Rider — premium theme. Loads AFTER the inline <style> in index.html.
+   Same system as the vendor app: brand red for actions, green only for "good" states. */
+:root{
+  --brand:#D71945;
+  --green:#D71945;--greenDark:#B3123A;--greenSoft:#FDECEF;
+  --ok:#18A06A;--okDark:#0E7C50;--okSoft:#E4F6EE;
+  --bg:#F4F4F6;--surface2:#F5F5F7;--surface3:#EDEDF0;--line:#E8E8EC;
+  --text:#1C1C1C;--muted:#5E6068;--faint:#8E919B;
+  --red:#C8283A;--redSoft:#FDECEE;--amber:#B26A00;--amberSoft:#FFF4E0;
+  --accent:#D71945;
+  --card-shadow:0 1px 2px rgba(20,20,30,.04),0 6px 18px rgba(20,20,30,.05);
+}
+:focus-visible{outline:3px solid rgba(215,25,69,.3);outline-offset:2px}
+body{background:var(--bg)}
+.app{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+
+/* ---- Header ---- */
+.top{background:#fff;backdrop-filter:none;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px}
+.logo{border-radius:12px;box-shadow:0 4px 12px rgba(215,25,69,.3)}
+.brand b{font-size:18px}
+.brand span{font-size:12px}
+.online,.online.on,.online:has(.dot.on){padding:6px 8px 6px 14px;gap:10px;font-size:14px;font-weight:800;color:var(--muted);background:#fff;border:1.5px solid #D6D8DE}
+.online.on,.online:has(.dot.on){color:var(--okDark);background:var(--okSoft);border-color:transparent}
+.online .dot{display:none}
+.online::after{content:"";width:42px;height:26px;border-radius:13px;background-color:#C9CCD3;
+  background-image:radial-gradient(circle,#fff 10px,transparent 10.5px);background-size:26px 26px;background-repeat:no-repeat;background-position:0 0;
+  transition:background-color .2s,background-position .2s}
+.online.on::after,.online:has(.dot.on)::after{background-color:var(--ok);background-position:100% 0}
+.dot.on{background:var(--ok);box-shadow:0 0 10px rgba(24,160,106,.6)}
+.statusLine .miniDot.on{background:#3DDC97}
+
+/* ---- New delivery alert ---- */
+.assignBar{top:calc(65px + env(safe-area-inset-top,0px));padding:13px 16px;font-size:14px;background:var(--brand);box-shadow:0 8px 20px rgba(215,25,69,.4);animation:pulseBar 1s infinite alternate}
+.assignBar button{color:var(--brand);font-size:13px;padding:9px 16px}
+@keyframes pulseBar{to{filter:brightness(1.12)}}
+@media (prefers-reduced-motion:reduce){.assignBar{animation:none}}
+
+/* ---- Home hero ---- */
+.hero{position:relative;overflow:hidden;border:0;border-radius:24px;padding:20px;color:#fff;
+  background:linear-gradient(135deg,#27282D,#121316);box-shadow:0 14px 30px rgba(18,19,22,.28)}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(215,25,69,.5),transparent 68%)}
+.heroRow,.stats{position:relative;z-index:1}
+.hero .avatar{width:56px;height:56px;border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:50%}
+.hero h1{font-size:22px}
+.hero p{font-size:13px;color:rgba(255,255,255,.72)}
+.hero .statusLine{color:rgba(255,255,255,.72);font-size:12px}
+.hero .toggle{border:0;background:#fff;color:var(--text);font-size:13px;padding:11px 14px}
+.stats{gap:10px;margin-top:18px}
+.stat{padding:12px;border:0;border-radius:16px;background:rgba(255,255,255,.09)}
+.stat small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:600;color:rgba(255,255,255,.64)}
+.stat strong{margin-top:6px;font-size:22px;letter-spacing:-.5px;color:#fff;font-variant-numeric:tabular-nums}
+
+/* ---- Sections ---- */
+.section{margin-top:22px}
+.sectionHead h2{font-size:18px;letter-spacing:-.02em}
+.count{font-size:13px}
+.filters{gap:8px;margin:0 -15px 12px;padding:2px 15px 4px}
+.filter{padding:10px 15px;font-size:13px;border-color:#D6D8DE}
+.filter.active{background:var(--text);border-color:var(--text);color:#fff}
+
+/* ---- Active delivery ---- */
+.focus{padding:18px;border:0;border-radius:22px;background:#fff;box-shadow:0 0 0 2px var(--brand),0 14px 30px rgba(215,25,69,.16)}
+.focusTitle{font-size:14px;color:var(--brand)}
+.focusSub{margin-top:4px;font-size:13px}
+.focusActions{grid-template-columns:1fr;gap:6px;margin-top:16px}
+.focus .btn.primary{min-height:54px;font-size:16px;border-radius:14px}
+.focus .btn.danger{min-height:40px;border:0;background:transparent;font-size:13px}
+
+/* ---- Order cards ---- */
+.card{border:0;border-radius:20px;box-shadow:var(--card-shadow)}
+.orderHead{padding:16px;border-bottom:1px dashed var(--line);align-items:center;flex-wrap:wrap}
+.orderHead>div:first-child{flex:1;min-width:0}
+.orderNo{font-size:16px;letter-spacing:-.2px}
+.ship{font-size:12px}
+.badge{padding:6px 11px;font-size:11px;letter-spacing:.01em;text-transform:none;background:var(--okSoft);color:var(--okDark)}
+.badge.red{background:var(--redSoft);color:var(--red)}
+.badge.amber{background:var(--amberSoft);color:var(--amber)}
+.route{padding:16px}
+.party{grid-template-columns:34px 1fr auto;gap:12px;align-items:center}
+.pin{width:34px;height:34px;border-radius:50%;font-size:13px}
+.party:first-child .pin{background:var(--text);color:#fff}
+.party:last-child .pin{background:var(--brand);color:#fff}
+.party b{font-size:15px}
+.party small{margin-top:3px;font-size:13px;line-height:1.4}
+.connector{height:22px;margin:3px 0 3px 16px;border-left:2px dashed #C9CCD3}
+.phone{padding:9px 14px;border-radius:999px;background:var(--greenSoft);color:var(--brand);font-size:13px;font-weight:800}
+.phone.missing{background:var(--surface2);color:var(--faint)}
+.instructions,.issueMini{margin:0 16px 14px;padding:12px;font-size:13px;line-height:1.45;border-radius:12px}
+.instructions b,.issueMini b{margin-bottom:4px;font-size:12px;letter-spacing:0;text-transform:none}
+.meta{gap:10px;padding:0 16px 16px}
+.metaBox{padding:11px;border:0;border-radius:14px;background:var(--surface2)}
+.metaBox small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:600}
+.metaBox b{margin-top:4px;font-size:15px;font-variant-numeric:tabular-nums}
+.timeline{padding:0 16px 16px}
+.step{font-size:11px;line-height:1.25}
+.step:before{width:12px;height:12px;margin-bottom:6px;border-width:2px}
+.step:after{top:5px}
+.step.done{color:var(--okDark)}
+.step.done:before{background:var(--ok);border-color:var(--ok)}
+.step.done:after{background:var(--ok)}
+
+/* ---- Buttons ---- */
+.actions{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 16px}
+.actions .btn{flex:1 1 calc(50% - 5px)}
+.actions .btn.primary{order:-1;flex-basis:100%;min-height:54px;font-size:16px;border-radius:14px}
+.actions .btn.blue{flex-basis:100%;min-height:38px;border:0;background:transparent;color:var(--muted);font-weight:700}
+.btn{min-height:48px;padding:12px 10px;border-radius:12px;border-color:#D6D8DE;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:var(--brand);border-color:var(--brand);box-shadow:0 6px 14px rgba(215,25,69,.28)}
+.btn.danger{color:var(--red);border-color:rgba(200,40,58,.35)}
+.btn.blue{color:var(--muted);border-color:#D6D8DE}
+.btn:disabled{opacity:.5;box-shadow:none}
+.empty{padding:36px 20px;border:0;border-radius:20px;background:#fff;box-shadow:var(--card-shadow);font-size:14px;line-height:1.5}
+.empty b{font-size:16px}
+.historyRow{padding:14px 16px}
+.historyRow small{font-size:12px}
+.historyEarn{font-size:15px;color:var(--okDark)}
+
+/* ---- Earnings ---- */
+.earnHero{position:relative;overflow:hidden;padding:22px;border:0;border-radius:24px;color:#fff;background:linear-gradient(135deg,#27282D,#121316);box-shadow:0 14px 30px rgba(18,19,22,.28)}
+.earnHero::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(215,25,69,.5),transparent 68%)}
+.earnHero>*{position:relative;z-index:1}
+.earnHero small{font-size:13px;letter-spacing:0;text-transform:none;color:rgba(255,255,255,.7)}
+.earnHero h1{margin:6px 0 18px;font-size:44px;letter-spacing:-1.5px;color:#fff;font-variant-numeric:tabular-nums}
+.earnGrid{gap:10px}
+.earnBox{padding:12px;border:0;border-radius:16px;background:rgba(255,255,255,.09)}
+.earnBox small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:600;color:rgba(255,255,255,.64)}
+.earnBox b{margin-top:6px;font-size:18px;color:#fff;font-variant-numeric:tabular-nums}
+
+/* ---- Profile ---- */
+.profileCard{padding:18px}
+.profileAvatar{border-radius:50%}
+.profileTop h2{font-size:20px}
+.profileTop p{font-size:13px}
+.profileItem{padding:12px;border:0;border-radius:14px}
+.profileItem small{font-size:12px;letter-spacing:0;text-transform:none;font-weight:600}
+.profileItem b{margin-top:5px;font-size:14px}
+
+/* ---- Bottom nav ---- */
+.bottom{background:rgba(255,255,255,.97);box-shadow:none}
+.nav{padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.nav button{position:relative;padding:8px 2px;font-size:12px}
+.nav button.active{color:var(--brand)}
+.nav button.active::before{content:"";position:absolute;top:-7px;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--brand)}
+.nav i{display:grid;place-items:center;height:24px;margin-bottom:3px}
+.nav svg{width:23px;height:23px}
+
+/* ---- Toast, sheets, forms ---- */
+.toast{bottom:calc(92px + env(safe-area-inset-bottom,0px));font-size:14px;border-radius:14px}
+.modal{padding:0}
+.sheet{position:relative;margin:auto auto 0;border:0;border-radius:24px 24px 0 0;padding:30px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+.sheet::before{content:"";position:absolute;top:10px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:4px;background:#D9DBE1}
+.sheet h3{font-size:21px;letter-spacing:-.3px}
+.sheet p{font-size:14px}
+.field label{font-size:12px;letter-spacing:0;text-transform:none}
+.field input,.field textarea,.field select{padding:13px;font-size:15px}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(215,25,69,.12);background:#fff}
+.reasonGrid{gap:10px}
+.reason{padding:14px 12px;font-size:13px;border-radius:14px}
+.reason.selected{border-color:var(--brand);background:var(--greenSoft);color:var(--greenDark)}
+.sheetActions{gap:10px;margin-top:16px}
+.otp{gap:10px}
+.otp input{height:64px;border-radius:16px;font-size:28px}
+.otp input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(215,25,69,.12);background:#fff}
+#otpMsg,#issueMsg,#profileMsg{font-size:13px!important}

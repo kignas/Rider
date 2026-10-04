@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#159A62">
+<meta name="theme-color" content="#D71945">
 <title>Eatswada Rider</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap');
@@ -155,6 +155,7 @@ button,a,input,textarea,select{font:inherit}button{cursor:pointer}a{text-decorat
 
 @media(min-width:680px){.content{padding:20px}.ordersGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ordersGrid .card{margin:0}.focus{padding:18px}.hero{padding:22px}}
 </style>
+<link rel="stylesheet" href="./theme.css">
 </head>
 <body>
 <div class="app">
@@ -170,7 +171,7 @@ button,a,input,textarea,select{font:inherit}button{cursor:pointer}a{text-decorat
 <section id="earningsView" class="hidden"><div class="sectionHead"><h2>Earnings</h2><span class="count">Verified deliveries only</span></div><div class="earnHero"><small>Today</small><h1 id="earnBig">₹0</h1><div class="earnGrid"><div class="earnBox"><small>Today</small><b id="eToday">₹0</b></div><div class="earnBox"><small>This week</small><b id="eWeek">₹0</b></div><div class="earnBox"><small>This month</small><b id="eMonth">₹0</b></div></div></div><section class="section"><div class="sectionHead"><h2>How your earning is calculated</h2></div><div class="card" style="padding:15px;color:var(--muted);font-size:10px;line-height:1.6">Each completed delivery shows the rider earning recorded on the order. The rider amount includes the configured delivery fee and rider tip; this screen does not invent estimates.</div></section></section>
 <section id="profileView" class="hidden"><div class="sectionHead"><h2>Profile & availability</h2></div><div class="card profileCard"><div class="profileTop"><div class="avatar profileAvatar" id="profileAvatar">R</div><div><h2 id="profileName">Rider</h2><p id="profilePhone">—</p></div></div><div class="profileGrid"><div class="profileItem"><small>Vehicle</small><b id="profileVehicle">—</b></div><div class="profileItem"><small>Vehicle no.</small><b id="profileVehicleNo">—</b></div><div class="profileItem"><small>Delivery zone</small><b id="profileZone">—</b></div><div class="profileItem"><small>GPS</small><b id="profileGps">Off</b></div></div><div class="profileActions"><button class="btn" id="editProfileBtn">Edit profile</button><label class="btn" for="photoInput">Change photo</label><input class="photoInput" id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><button class="btn" id="refreshBtn">Refresh data</button><button class="btn danger" id="logoutBtn">Log out</button></div></div><section class="section"><div class="sectionHead"><h2>Delivery safety</h2></div><div class="card" style="padding:15px;color:var(--muted);font-size:10px;line-height:1.6">If a delivery cannot be completed, use <b style="color:var(--text)">Report delivery issue</b> on the active order. Do not mark an order delivered unless the customer PIN has been verified.</div></section></section>
 </main>
-<div class="bottom"><nav class="nav"><button class="active" data-view="homeView"><i>⌂</i>Home</button><button data-view="earningsView"><i>₹</i>Earnings</button><button data-view="profileView"><i>◉</i>Profile</button><button id="navRefresh"><i>↻</i>Refresh</button></nav></div>
+<div class="bottom"><nav class="nav"><button class="active" data-view="homeView"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10"/><path d="M9 21v-6h6v6"/></svg></i>Home</button><button data-view="earningsView"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><path d="M16 15h2"/></svg></i>Earnings</button><button data-view="profileView"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></i>Profile</button><button id="navRefresh"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></i>Refresh</button></nav></div>
 </div>
 <div class="toast" id="toast"></div>
 <div class="modal" id="otpModal"><div class="sheet"><h3>Confirm delivery</h3><p>Ask the customer for the 4-digit delivery PIN. The order cannot be completed without it.</p><div class="otp"><input inputmode="numeric" maxlength="1" id="o0"><input inputmode="numeric" maxlength="1" id="o1"><input inputmode="numeric" maxlength="1" id="o2"><input inputmode="numeric" maxlength="1" id="o3"></div><div id="otpMsg" style="min-height:18px;text-align:center;font-size:10px;margin-bottom:10px"></div><div class="sheetActions"><button class="btn" id="closeOtp">Cancel</button><button class="btn primary" id="verifyOtp">Verify PIN</button></div></div></div>
