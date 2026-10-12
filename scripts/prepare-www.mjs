@@ -10,7 +10,8 @@ const files = [
   "index.html",
   "login.html",
   "firebase-messaging-sw.js",
-  "theme.css"
+  "theme.css",
+  "native-push.js"
 ];
 for (const file of files) {
   const from = path.join(root, file);
@@ -18,3 +19,11 @@ for (const file of files) {
   fs.copyFileSync(from, path.join(out, file));
 }
 console.log(`Prepared ${files.length} app files in www/.`);
+
+
+const indexPath = path.join(out, 'index.html');
+let indexHtml = fs.readFileSync(indexPath, 'utf8');
+if (!indexHtml.includes('src="./native-push.js"')) {
+  indexHtml = indexHtml.replace('</body>', '  <script src="./native-push.js"></script>\n</body>');
+  fs.writeFileSync(indexPath, indexHtml);
+}
