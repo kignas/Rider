@@ -1,0 +1,11 @@
+{
+  "appId": "com.eatswada.rider",
+  "appName": "Eatswada Rider",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
