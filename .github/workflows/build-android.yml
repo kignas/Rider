@@ -1,91 +1,113 @@
 name: Build Eatswada Rider APK
 
 on:
-workflow_dispatch:
-push:
-branches: [main, master]
+  workflow_dispatch:
+  push:
+    branches: [main, master]
 
 permissions:
-contents: read
+  contents: read
 
 jobs:
-build-apk:
-runs-on: ubuntu-latest
-steps:
-- name: Checkout repository
-uses: actions/checkout@v4
+  build-apk:
+    runs-on: ubuntu-latest
 
-  - name: Set up Node.js
-    uses: actions/setup-node@v4
-    with:
-      node-version: 22
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  - name: Set up Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '21'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-  - name: Install dependencies
-    run: npm install
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
-  - name: Prepare web assets
-    run: npm run android:prepare
+      - name: Install dependencies
+        run: npm install
 
-  - name: Add Android project
-    run: npx cap add android
+      - name: Prepare web assets
+        run: npm run android:prepare
 
-  - name: Sync Android project
-    run: npx cap sync android
+      - name: Add Android project
+        run: npx cap add android
 
-  - name: Configure Firebase for Android
-    env:
-      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-    run: |
-      set -eu
-      test -n "$GOOGLE_SERVICES_JSON" || { echo "Missing GOOGLE_SERVICES_JSON secret"; exit 1; }
-      mkdir -p android/app
-      printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
-      node --input-type=module <<'NODE'
-      import fs from 'node:fs';
+      - name: Sync Android project
+        run: npx cap sync android
 
-      const file = 'android/app/google-services.json';
-      const config = JSON.parse(fs.readFileSync(file, 'utf8'));
-      const packages = (config.client || []).map(
-        c => c.client_info?.android_client_info?.package_name
-      );
+      - name: Apply Eatswada Rider launcher icons
+        run: |
+          set -eu
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            test -f "android-icons/mipmap-${density}/ic_launcher.png"
+            test -f "android-icons/mipmap-${density}/ic_launcher_round.png"
+            mkdir -p "android/app/src/main/res/mipmap-${density}"
+            cp "android-icons/mipmap-${density}/ic_launcher.png" \
+              "android/app/src/main/res/mipmap-${density}/ic_launcher.png"
+            cp "android-icons/mipmap-${density}/ic_launcher_round.png" \
+              "android/app/src/main/res/mipmap-${density}/ic_launcher_round.png"
+          done
 
-      if (!packages.includes('com.eatswada.rider')) {
-        throw new Error('Firebase JSON does not contain com.eatswada.rider');
-      }
+      - name: Configure Firebase for Android
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -eu
+          test -n "$GOOGLE_SERVICES_JSON" || {
+            echo "Missing GOOGLE_SERVICES_JSON secret"
+            exit 1
+          }
 
-      const gradleFile = 'android/app/build.gradle';
-      let gradle = fs.readFileSync(gradleFile, 'utf8');
+          mkdir -p android/app
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
-      if (!gradle.includes('com.google.gms.google-services')) {
-        if (!/plugins\s*\{/.test(gradle)) {
-          throw new Error('Android app Gradle plugins block not found');
-        }
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
 
-        gradle = gradle.replace(
-          /plugins\s*\{/,
-          "plugins {\n    id 'com.google.gms.google-services' version '4.4.4'"
-        );
-        fs.writeFileSync(gradleFile, gradle);
-      }
+          const file = 'android/app/google-services.json';
+          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const packages = (config.client || []).map(
+            c => c.client_info?.android_client_info?.package_name
+          );
 
-      console.log('Rider Firebase configuration validated.');
-      NODE
+          if (!packages.includes('com.eatswada.rider')) {
+            throw new Error(
+              'Firebase JSON does not contain com.eatswada.rider'
+            );
+          }
 
-  - name: Build APK
-    run: |
-      cd android
-      chmod +x gradlew
-      ./gradlew assembleDebug
+          const gradleFile = 'android/app/build.gradle';
+          let gradle = fs.readFileSync(gradleFile, 'utf8');
 
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: Eatswada-Rider-APK-debug
-      path: android/app/build/outputs/apk/debug/app-debug.apk
-      if-no-files-found: error
+          if (!gradle.includes('com.google.gms.google-services')) {
+            if (!/plugins\s*\{/.test(gradle)) {
+              throw new Error('Android app Gradle plugins block not found');
+            }
+
+            gradle = gradle.replace(
+              /plugins\s*\{/,
+              "plugins {\n    id 'com.google.gms.google-services' version '4.4.4'"
+            );
+
+            fs.writeFileSync(gradleFile, gradle);
+          }
+
+          console.log('Rider Firebase configuration validated.');
+          NODE
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eatswada-Rider-APK-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
