@@ -13,7 +13,8 @@ const files = [
   "rider-logic.js",
   "firebase-messaging-sw.js",
   "theme.css",
-  "native-push.js"
+  "native-push.js",
+  "rider-extras.js"
 ];
 for (const file of files) {
   const from = path.join(root, file);
