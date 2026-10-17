@@ -15,7 +15,7 @@ const required = [
   'android.permission.ACCESS_FINE_LOCATION'
 ];
 const missing = required.filter(permission =>
-  !new RegExp(`<uses-permission\s+[^>]*android:name=["']${permission}["']`).test(manifest)
+  !new RegExp(String.raw`<uses-permission\s+[^>]*android:name=["']${permission}["']`).test(manifest)
 );
 
 if (missing.length) {
@@ -28,7 +28,7 @@ if (missing.length) {
 
 const verify = fs.readFileSync(manifestPath, 'utf8');
 for (const permission of required) {
-  if (!new RegExp(`<uses-permission\s+[^>]*android:name=["']${permission}["']`).test(verify)) {
+  if (!new RegExp(String.raw`<uses-permission\s+[^>]*android:name=["']${permission}["']`).test(verify)) {
     throw new Error(`Required location permission is missing after patch: ${permission}`);
   }
 }
