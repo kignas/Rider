@@ -9,6 +9,8 @@ fs.mkdirSync(out, { recursive: true });
 const files = [
   "index.html",
   "login.html",
+  "apply.html",
+  "rider-logic.js",
   "firebase-messaging-sw.js",
   "theme.css",
   "native-push.js"
