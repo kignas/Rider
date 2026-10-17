@@ -26,9 +26,16 @@
 
   function getAuthToken() { return localStorage.getItem(TOKEN_KEY); }
 
+  // Remember the last token we registered so logout can unregister the exact
+  // device from the exact rider account (see index.html logout handler).
+  function rememberToken(token) {
+    try { localStorage.setItem('eatswada_rider_fcm_token', token); } catch (_) {}
+  }
+
   async function registerToken(token) {
     const jwt = getAuthToken();
     if (!token || !jwt) return;
+    rememberToken(token);
     try {
       const response = await fetch(API_BASE + '/notifications/register-token', {
         method: 'POST',
@@ -38,6 +45,7 @@
       if (!response.ok) throw new Error('HTTP ' + response.status);
       console.info('[Eatswada native push] Device token registered.');
     } catch (error) {
+      // A failed token registration must never break login or the dashboard.
       console.error('[Eatswada native push] Device token registration failed:', error.message);
     }
   }

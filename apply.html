@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#D71945">
+<title>Eatswada Rider — Become a Delivery Partner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#D71945;--brand-dark:#B3123A;--ink:#1C1C1C;--soft:#5E6068;--page:#F4F4F6;--line:#E3E4E9;--ok:#18A06A;--okSoft:#E4F6EE;--danger:#C8283A;--danger-bg:#FDECEE;--warn:#B26A00;--warn-bg:#FFF4E0;--font:'Manrope',system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{position:relative;min-height:100vh;min-height:100dvh;display:flex;justify-content:center;padding:0 16px;font-family:var(--font);color:var(--ink);background:var(--page);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:absolute;inset:0 0 auto;height:300px;border-radius:0 0 32px 32px;background:linear-gradient(160deg,#27282D 0%,#121316 100%)}
+body::after{content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(215,25,69,.6),transparent 68%);pointer-events:none}
+button,input,select,textarea{font-family:inherit}
+:focus-visible{outline:3px solid rgba(215,25,69,.3);outline-offset:2px}
+.is-hidden{display:none!important}
+.screen{position:relative;z-index:1;width:100%;max-width:460px;padding:calc(40px + env(safe-area-inset-top,0px)) 0 40px}
+.hero{margin:0 4px 22px;color:#fff}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:var(--brand);font-size:20px;font-weight:800;box-shadow:0 6px 16px rgba(215,25,69,.4)}
+.brand b{display:block;font-size:18px;font-weight:800;letter-spacing:-.3px}
+.brand span{display:block;margin-top:1px;font-size:13px;color:rgba(255,255,255,.7)}
+.headline{margin:24px 0 8px;font-size:30px;line-height:1.12;font-weight:800;letter-spacing:-1px}
+.subhead{margin:0;font-size:15px;line-height:1.5;color:rgba(255,255,255,.8)}
+.back-link{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;color:rgba(255,255,255,.85);font-size:14px;font-weight:700;text-decoration:none}
+.card{padding:22px 20px 22px;border-radius:24px;background:#fff;box-shadow:0 18px 50px rgba(20,10,20,.2)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:20px;border-radius:14px;background:var(--page)}
+.tab{height:44px;border:0;border-radius:11px;background:transparent;color:var(--soft);font-size:14px;font-weight:700;cursor:pointer;transition:background .15s,color .15s}
+.tab.is-active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,20,30,.12)}
+.section-title{margin:22px 0 10px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+.section-title:first-of-type{margin-top:0}
+.field{margin-bottom:16px}
+.field label{display:block;margin-bottom:7px;font-size:13px;font-weight:700}
+.field .opt{color:var(--soft);font-weight:600}
+.field input,.field select{width:100%;height:52px;padding:0 14px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font-size:16px;font-weight:600;transition:border-color .15s,box-shadow .15s}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235E6068' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
+.field input::placeholder{color:#A3A6AF;font-weight:500}
+.field input:focus,.field select:focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 4px rgba(215,25,69,.12)}
+.field input:disabled,.field select:disabled{opacity:.7}
+.field.has-error input,.field.has-error select{border-color:var(--danger)}
+.field-error{display:block;margin-top:6px;color:var(--danger);font-size:12px;font-weight:600;min-height:0}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:52px}
+.toggle-visibility{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:flex;padding:11px;border:0;background:none;color:var(--soft);cursor:pointer}
+.help{margin:-4px 0 16px;font-size:12px;line-height:1.5;color:var(--soft)}
+.banner{margin-bottom:16px;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:600;line-height:1.45}
+.banner.error{background:var(--danger-bg);color:var(--danger)}
+.banner.ok{background:var(--okSoft);color:#0E7C50}
+.banner.info{background:#EEF1F3;color:var(--soft)}
+.submit-btn{width:100%;height:56px;display:flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:14px;background:var(--brand);color:#fff;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(215,25,69,.28);transition:transform .08s,background .15s}
+.submit-btn:hover{background:var(--brand-dark)}
+.submit-btn:active{transform:scale(.98)}
+.submit-btn:disabled{opacity:.7;cursor:wait;transform:none}
+.submit-btn.secondary{background:#fff;color:var(--ink);border:1.5px solid var(--line);box-shadow:none}
+.btn-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.footnote{margin:18px 0 0;text-align:center;font-size:13px;line-height:1.5;color:var(--soft)}
+.footnote a{color:var(--brand);font-weight:700}
+.success-panel{text-align:center}
+.success-mark{width:64px;height:64px;margin:4px auto 16px;display:grid;place-items:center;border-radius:50%;background:var(--okSoft);color:var(--ok)}
+.success-panel h3{margin:0 0 8px;font-size:21px;font-weight:800}
+.success-panel p{margin:0 0 16px;font-size:14px;line-height:1.55;color:var(--soft)}
+.ref-box{margin:0 0 18px;padding:14px;border:1.5px dashed var(--line);border-radius:14px;background:var(--page);text-align:left}
+.ref-box small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:800;margin-bottom:6px}
+.ref-box code{display:block;font-size:15px;font-weight:800;word-break:break-all;color:var(--ink)}
+.status-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.status-pill{display:inline-block;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:800}
+.status-pill.info{background:#EEF1F3;color:var(--soft)}
+.status-pill.ok{background:var(--okSoft);color:#0E7C50}
+.status-pill.warn{background:var(--warn-bg);color:var(--warn)}
+.status-pill.bad{background:var(--danger-bg);color:var(--danger)}
+.status-desc{margin:0 0 14px;font-size:14px;line-height:1.55;color:var(--ink)}
+.note{margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--warn-bg);color:#7a4a00;font-size:13px;line-height:1.5;font-weight:600}
+.status-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 16px}
+.status-meta div{background:var(--page);border:1px solid var(--line);border-radius:12px;padding:10px}
+.status-meta small{display:block;font-size:11px;color:var(--soft);font-weight:700;margin-bottom:4px}
+.status-meta b{font-size:13px;font-weight:800}
+@media (prefers-reduced-motion:reduce){.btn-spinner{animation:none}}
+</style>
+</head>
+<body>
+
+  <div class="screen">
+
+    <div class="hero">
+      <a class="back-link" href="./login.html" aria-label="Back to log in">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Log in
+      </a>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">E</span>
+        <div><b>Eatswada</b><span>Rider</span></div>
+      </div>
+      <h1 class="headline" id="pageHeadline">Become a Delivery Partner</h1>
+      <p class="subhead" id="pageSubhead">Apply to ride with Eatswada. An admin reviews every application before your rider account is created.</p>
+    </div>
+
+    <main class="card">
+
+      <div class="tabs" role="tablist" aria-label="Rider application">
+        <button type="button" class="tab is-active" id="tab-apply" role="tab" aria-selected="true" aria-controls="applyPanel">Apply</button>
+        <button type="button" class="tab" id="tab-status" role="tab" aria-selected="false" aria-controls="statusPanel">Check status</button>
+      </div>
+
+      <!-- ── Apply ─────────────────────────────────────────────── -->
+      <section id="applyPanel" role="tabpanel" aria-labelledby="tab-apply">
+
+        <form id="apply-form" novalidate>
+
+          <div class="banner error is-hidden" id="apply-banner" role="alert"></div>
+
+          <p class="section-title">Your details</p>
+
+          <div class="field" id="f-name">
+            <label for="name">Full name</label>
+            <input type="text" id="name" name="name" autocomplete="name" maxlength="60" placeholder="As on your licence" />
+            <span class="field-error is-hidden" id="e-name"></span>
+          </div>
+
+          <div class="field" id="f-phone">
+            <label for="phone">Phone number</label>
+            <input type="tel" id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="98765 43210" />
+            <span class="field-error is-hidden" id="e-phone"></span>
+          </div>
+
+          <div class="field" id="f-email">
+            <label for="email">Email <span class="opt">(optional)</span></label>
+            <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" />
+            <span class="field-error is-hidden" id="e-email"></span>
+          </div>
+
+          <div class="field" id="f-password">
+            <label for="password">Create a password</label>
+            <div class="password-wrap">
+              <input type="password" id="password" name="password" autocomplete="new-password" maxlength="72" placeholder="At least 8 characters" />
+              <button type="button" class="toggle-visibility" id="toggle-password" aria-label="Show password">
+                <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <span class="field-error is-hidden" id="e-password"></span>
+          </div>
+          <p class="help">You will use this password to log in after an admin approves your application. It is sent once to Eatswada and never shown again.</p>
+
+          <p class="section-title">Vehicle &amp; delivery area</p>
+
+          <div class="field" id="f-vehicleType">
+            <label for="vehicleType">Vehicle type</label>
+            <select id="vehicleType" name="vehicleType">
+              <option value="" selected disabled>Select a vehicle</option>
+              <option value="bike">Bike</option>
+              <option value="scooter">Scooter</option>
+              <option value="bicycle">Bicycle</option>
+              <option value="car">Car</option>
+            </select>
+            <span class="field-error is-hidden" id="e-vehicleType"></span>
+          </div>
+
+          <div class="field" id="f-vehicleNumber">
+            <label for="vehicleNumber">Vehicle registration number <span class="opt">(optional)</span></label>
+            <input type="text" id="vehicleNumber" name="vehicleNumber" maxlength="20" autocapitalize="characters" placeholder="e.g. WB64AB1234" />
+            <span class="field-error is-hidden" id="e-vehicleNumber"></span>
+          </div>
+
+          <div class="field" id="f-deliveryZone">
+            <label for="deliveryZone">Delivery zone</label>
+            <input type="text" id="deliveryZone" name="deliveryZone" maxlength="80" placeholder="Area or zone you will deliver in" />
+            <span class="field-error is-hidden" id="e-deliveryZone"></span>
+          </div>
+
+          <div class="field" id="f-drivingLicenseNumber">
+            <label for="drivingLicenseNumber">Driving licence number <span class="opt">(optional)</span></label>
+            <input type="text" id="drivingLicenseNumber" name="drivingLicenseNumber" maxlength="40" autocapitalize="characters" placeholder="Licence number, if you have one" />
+            <span class="field-error is-hidden" id="e-drivingLicenseNumber"></span>
+          </div>
+
+          <button type="submit" class="submit-btn" id="apply-btn">
+            <span class="btn-label">Submit application</span>
+            <span class="btn-spinner is-hidden" id="apply-spinner"></span>
+          </button>
+
+          <p class="help" style="margin-top:14px">Submitting does not create or activate a rider account. An Eatswada admin reviews your application first. This app does not verify your documents — that is handled by the Eatswada team.</p>
+
+        </form>
+
+        <div class="success-panel is-hidden" id="apply-success" role="status" aria-live="polite">
+          <div class="success-mark" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <h3>Application submitted</h3>
+          <p id="success-copy">Your application is waiting for an Eatswada admin to review it. You cannot log in until it is approved.</p>
+          <div class="ref-box">
+            <small>Your application ID — save it to check your status</small>
+            <code id="success-ref">—</code>
+          </div>
+          <button type="button" class="submit-btn" id="goto-status">Check my status</button>
+          <button type="button" class="submit-btn secondary" id="new-application" style="margin-top:10px">Submit another application</button>
+        </div>
+
+      </section>
+
+      <!-- ── Status ────────────────────────────────────────────── -->
+      <section id="statusPanel" role="tabpanel" aria-labelledby="tab-status" class="is-hidden">
+
+        <div class="banner error is-hidden" id="status-banner" role="alert"></div>
+
+        <div id="status-form-wrap">
+          <div class="field" id="f-statusId">
+            <label for="statusId">Application ID</label>
+            <input type="text" id="statusId" name="statusId" autocomplete="off" placeholder="Paste your application ID" />
+          </div>
+          <div class="field" id="f-statusPhone">
+            <label for="statusPhone">Phone number you applied with</label>
+            <input type="tel" id="statusPhone" name="statusPhone" inputmode="tel" autocomplete="tel" placeholder="98765 43210" />
+          </div>
+          <button type="button" class="submit-btn" id="status-btn">
+            <span class="btn-label">Check status</span>
+            <span class="btn-spinner is-hidden" id="status-spinner"></span>
+          </button>
+        </div>
+
+        <div id="status-result" class="is-hidden" aria-live="polite"></div>
+
+      </section>
+
+      <p class="footnote" id="card-footnote">Already an approved rider? <a href="./login.html">Log in</a></p>
+
+    </main>
+
+  </div>
+
+<script src="./rider-logic.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const API_BASE = "https://api.eatswada.com";
+  const APPLICATIONS_ENDPOINT = API_BASE + "/api/rider-applications";
+  const LOGIN_PAGE = "login.html";
+  const REF_KEY = "eatswada_rider_application";
+  const LOGIC = window.RiderLogic;
+
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Tabs ----------
+  const tabApply = $("tab-apply");
+  const tabStatus = $("tab-status");
+  const applyPanel = $("applyPanel");
+  const statusPanel = $("statusPanel");
+
+  function setTab(which) {
+    const isApply = which === "apply";
+    tabApply.classList.toggle("is-active", isApply);
+    tabStatus.classList.toggle("is-active", !isApply);
+    tabApply.setAttribute("aria-selected", String(isApply));
+    tabStatus.setAttribute("aria-selected", String(!isApply));
+    applyPanel.classList.toggle("is-hidden", !isApply);
+    statusPanel.classList.toggle("is-hidden", isApply);
+    $("pageHeadline").textContent = isApply ? "Become a Delivery Partner" : "Check application status";
+    $("pageSubhead").textContent = isApply
+      ? "Apply to ride with Eatswada. An admin reviews every application before your rider account is created."
+      : "Enter your application ID and the phone number you applied with to see the admin's decision.";
+    $("card-footnote").classList.toggle("is-hidden", !isApply);
+    hideBanner("apply");
+    hideBanner("status");
+  }
+  tabApply.addEventListener("click", () => setTab("apply"));
+  tabStatus.addEventListener("click", () => setTab("status"));
+
+  // ---------- Banners ----------
+  function showBanner(scope, message, kind) {
+    const el = $(scope + "-banner");
+    el.textContent = message;
+    el.className = "banner " + (kind || "error");
+  }
+  function hideBanner(scope) {
+    const el = $(scope + "-banner");
+    el.classList.add("is-hidden");
+    el.textContent = "";
+  }
+
+  // ---------- Field errors ----------
+  function clearFieldErrors() {
+    document.querySelectorAll(".field.has-error").forEach((el) => el.classList.remove("has-error"));
+    document.querySelectorAll(".field-error").forEach((el) => {
+      el.textContent = "";
+      el.classList.add("is-hidden");
+    });
+  }
+  function showFieldErrors(errors) {
+    Object.keys(errors || {}).forEach((key) => {
+      const wrap = $("f-" + key);
+      const msg = $("e-" + key);
+      if (wrap) wrap.classList.add("has-error");
+      if (msg) {
+        msg.textContent = errors[key];
+        msg.classList.remove("is-hidden");
+      }
+    });
+  }
+
+  // ---------- Password visibility ----------
+  const passwordInput = $("password");
+  $("toggle-password").addEventListener("click", () => {
+    const isPassword = passwordInput.type === "password";
+    passwordInput.type = isPassword ? "text" : "password";
+    $("toggle-password").setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+    $("eye-icon").style.opacity = isPassword ? "1" : "0.6";
+  });
+
+  // ---------- Apply ----------
+  const applyForm = $("apply-form");
+  const applyBtn = $("apply-btn");
+  const applyLabel = applyBtn.querySelector(".btn-label");
+  const applySpinner = $("apply-spinner");
+  let submitting = false;
+
+  function readForm() {
+    return {
+      name: $("name").value,
+      phone: $("phone").value,
+      email: $("email").value,
+      password: $("password").value,
+      vehicleType: $("vehicleType").value,
+      vehicleNumber: $("vehicleNumber").value,
+      deliveryZone: $("deliveryZone").value,
+      drivingLicenseNumber: $("drivingLicenseNumber").value,
+    };
+  }
+
+  function setApplying(isLoading) {
+    submitting = isLoading;
+    applyBtn.disabled = isLoading;
+    applyLabel.textContent = isLoading ? "Submitting…" : "Submit application";
+    applySpinner.classList.toggle("is-hidden", !isLoading);
+  }
+
+  function clearForm() {
+    applyForm.reset();
+    clearFieldErrors();
+    // Never keep a submitted password in the DOM.
+    passwordInput.value = "";
+    passwordInput.type = "password";
+  }
+
+  function showSuccess(ref) {
+    applyForm.classList.add("is-hidden");
+    $("apply-success").classList.remove("is-hidden");
+    $("success-ref").textContent = ref.id;
+    clearForm();
+  }
+
+  function hideSuccess() {
+    $("apply-success").classList.add("is-hidden");
+    applyForm.classList.remove("is-hidden");
+    hideBanner("apply");
+  }
+
+  $("new-application").addEventListener("click", hideSuccess);
+
+  $("goto-status").addEventListener("click", () => {
+    const ref = loadRef();
+    setTab("status");
+    if (ref) {
+      $("statusId").value = ref.id;
+      $("statusPhone").value = ref.phone;
+    }
+    checkStatus();
+  });
+
+  applyForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (submitting) return; // prevent accidental duplicate submissions
+    hideBanner("apply");
+    clearFieldErrors();
+
+    const form = readForm();
+    const result = LOGIC.validateApplication(form);
+    if (!result.valid) {
+      showFieldErrors(result.errors);
+      showBanner("apply", result.message, "error");
+      return;
+    }
+
+    setApplying(true);
+    let data;
+    try {
+      const res = await fetch(APPLICATIONS_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(LOGIC.buildApplicationPayload(form)),
+      });
+      try {
+        data = await res.json();
+      } catch {
+        showBanner("apply", "The server returned an unexpected response. Please try again.", "error");
+        setApplying(false);
+        return;
+      }
+
+      if (!res.ok || !data.success) {
+        // The backend message is authoritative. Special-case the duplicate
+        // response, which returns the existing application id so the applicant
+        // can still check its status.
+        if (res.status === 409 && data.applicationId) {
+          saveRef(LOGIC.buildApplicationRef(form, { id: data.applicationId, status: data.status }));
+          showBanner(
+            "apply",
+            (data.message || "An application already exists for this phone number.") +
+              " You can check its status with the application ID shown.",
+            "info"
+          );
+        } else {
+          showBanner("apply", data.message || "Something went wrong. Please try again.", "error");
+        }
+        setApplying(false);
+        return;
+      }
+
+      const ref = LOGIC.buildApplicationRef(form, data.data || {});
+      saveRef(ref);
+      showSuccess(ref);
+      setApplying(false);
+    } catch (err) {
+      showBanner(
+        "apply",
+        err && err.message === "Failed to fetch"
+          ? "Can't reach the server. Check your connection and try again."
+          : "Something went wrong. Please try again.",
+        "error"
+      );
+      setApplying(false);
+    }
+  });
+
+  // ---------- Application reference storage (minimum data only) ----------
+  function saveRef(ref) {
+    try {
+      localStorage.setItem(REF_KEY, JSON.stringify(ref));
+    } catch {
+      /* storage may be unavailable; status can still be checked manually */
+    }
+  }
+  function loadRef() {
+    try {
+      const raw = localStorage.getItem(REF_KEY);
+      if (!raw) return null;
+      const ref = JSON.parse(raw);
+      if (!ref || !ref.id || !ref.phone) return null;
+      return ref;
+    } catch {
+      return null;
+    }
+  }
+
+  // ---------- Status ----------
+  const statusBtn = $("status-btn");
+  const statusLabel = statusBtn.querySelector(".btn-label");
+  const statusSpinner = $("status-spinner");
+  const statusResult = $("status-result");
+  const statusFormWrap = $("status-form-wrap");
+  let checking = false;
+
+  function setChecking(isLoading) {
+    checking = isLoading;
+    statusBtn.disabled = isLoading;
+    statusLabel.textContent = isLoading ? "Checking…" : "Check status";
+    statusSpinner.classList.toggle("is-hidden", !isLoading);
+  }
+
+  function fmtDate(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function renderStatus(data) {
+    const meta = LOGIC.statusMeta(data.status);
+    const parts = [];
+    parts.push('<div class="status-head"><h3 style="margin:0;font-size:19px;font-weight:800">' + escapeHtml(data.name || "Your application") + "</h3>" +
+      '<span class="status-pill ' + meta.tone + '">' + escapeHtml(meta.label) + "</span></div>");
+    parts.push('<p class="status-desc">' + escapeHtml(meta.description) + "</p>");
+
+    if (data.reviewNote) {
+      parts.push('<div class="note"><b>Admin note:</b> ' + escapeHtml(data.reviewNote) + "</div>");
+    }
+
+    parts.push('<div class="status-meta">' +
+      "<div><small>Submitted</small><b>" + fmtDate(data.createdAt) + "</b></div>" +
+      "<div><small>Last reviewed</small><b>" + fmtDate(data.reviewedAt) + "</b></div>" +
+      "</div>");
+
+    if (data.status === "needs_changes") {
+      parts.push('<p class="help">Reply to the Eatswada admin with the requested changes. This app cannot resubmit your application automatically.</p>');
+    }
+    if (data.status === "approved") {
+      parts.push('<p class="help">Log in with the phone number and password you used when applying.</p>');
+      parts.push('<a class="submit-btn" href="' + LOGIN_PAGE + '" style="text-decoration:none">Go to log in</a>');
+    }
+
+    parts.push('<button type="button" class="submit-btn secondary" id="status-again" style="margin-top:10px">Check another application</button>');
+
+    statusResult.innerHTML = parts.join("");
+    statusResult.classList.remove("is-hidden");
+    statusFormWrap.classList.add("is-hidden");
+    $("status-again").addEventListener("click", () => {
+      statusResult.classList.add("is-hidden");
+      statusFormWrap.classList.remove("is-hidden");
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  async function checkStatus() {
+    if (checking) return;
+    hideBanner("status");
+
+    const ref = { id: $("statusId").value, phone: $("statusPhone").value };
+    const valid = LOGIC.validateApplicationRef(ref);
+    if (!valid.valid) {
+      showBanner("status", valid.message, "error");
+      return;
+    }
+
+    setChecking(true);
+    try {
+      const url = APPLICATIONS_ENDPOINT + "/" + encodeURIComponent(valid.id) + "/status?phone=" + encodeURIComponent(valid.phone);
+      const res = await fetch(url, { method: "GET" });
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        showBanner("status", "The server returned an unexpected response. Please try again.", "error");
+        setChecking(false);
+        return;
+      }
+
+      if (!res.ok || !data.success) {
+        showBanner("status", data.message || "Could not find that application. Check the ID and phone number.", "error");
+        setChecking(false);
+        return;
+      }
+
+      // Refresh the stored reference so the applicant can re-check quickly.
+      saveRef(LOGIC.buildApplicationRef({ phone: valid.phone }, data.data || {}));
+      renderStatus(data.data || {});
+      setChecking(false);
+    } catch (err) {
+      showBanner(
+        "status",
+        err && err.message === "Failed to fetch"
+          ? "Can't reach the server. Check your connection and try again."
+          : "Something went wrong. Please try again.",
+        "error"
+      );
+      setChecking(false);
+    }
+  }
+
+  statusBtn.addEventListener("click", checkStatus);
+
+  // ---------- Initial state ----------
+  (function init() {
+    const ref = loadRef();
+    if (ref) {
+      $("statusId").value = ref.id;
+      $("statusPhone").value = ref.phone;
+      // If a stored reference is very old, ask the applicant to re-enter it.
+      if (LOGIC.isApplicationRefStale(ref)) {
+        $("statusId").value = "";
+        $("statusPhone").value = "";
+      }
+    }
+  })();
+})();
+</script>
+</body>
+</html>

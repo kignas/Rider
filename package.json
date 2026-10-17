@@ -4,7 +4,10 @@
   "private": true,
   "description": "Android packaging for Eatswada Rider",
   "scripts": {
-    "android:prepare": "node scripts/prepare-www.mjs"
+    "android:prepare": "node scripts/prepare-www.mjs",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "lint": "node scripts/check-inline-scripts.mjs index.html login.html apply.html && node --check rider-logic.js && node --check native-push.js && node --check firebase-messaging-sw.js",
+    "check": "npm run lint && npm test"
   },
   "devDependencies": {
     "@capacitor/android": "8.5.2",
