@@ -1,5 +1,7 @@
 // Adds a lock-screen, full-screen order alert to the Capacitor Android project.
 // Reusable for BOTH apps. Run AFTER `npx cap add android` / `cap sync`.
+//   EXTRA_PERMISSIONS  more android.permission.* names to declare (comma list)
+//   ACCEPT_LABEL  big button text (default ACCEPT)
 //   ALERT_TYPES   comma list of FCM data.type values that trigger it (default rider_assignment)
 //   ANDROID_ROOT  android project dir (default "android"); CAP_CONFIG config path
 import fs from 'node:fs';
@@ -9,6 +11,7 @@ const root = process.env.ANDROID_ROOT || 'android';
 const cfg = JSON.parse(fs.readFileSync(process.env.CAP_CONFIG || 'capacitor.config.json', 'utf8'));
 const pkg = cfg.appId;
 const types = process.env.ALERT_TYPES || 'rider_assignment';
+const label = process.env.ACCEPT_LABEL || 'ACCEPT';
 const dir = path.join(root, 'app/src/main/java', ...pkg.split('.'));
 fs.mkdirSync(dir, { recursive: true });
 
@@ -112,7 +115,7 @@ public class AlertActivity extends Activity {
     TextView t = tv(getIntent().getStringExtra("title"), 30, Color.WHITE, true);
     TextView b = tv(getIntent().getStringExtra("body"), 18, Color.parseColor("#C9CED2"), false);
     final TextView c = tv("60", 64, Color.parseColor("#D71945"), true);
-    Button ok = new Button(this); ok.setText("ACCEPT"); ok.setTextSize(22);
+    Button ok = new Button(this); ok.setText("__LABEL__"); ok.setTextSize(22);
     Button no = new Button(this); no.setText("DISMISS");
     l.addView(t); l.addView(b); l.addView(c); l.addView(ok, -1, 200); l.addView(no, -1, -2);
     setContentView(l);
@@ -167,7 +170,7 @@ public class AlertActivity extends Activity {
 }
 `;
 
-const sub = (s) => s.replaceAll('__PKG__', pkg).replaceAll('__TYPES__', types);
+const sub = (s) => s.replaceAll('__PKG__', pkg).replaceAll('__TYPES__', types).replaceAll('__LABEL__', label);
 fs.writeFileSync(path.join(dir, 'AlertMessagingService.java'), sub(service));
 fs.writeFileSync(path.join(dir, 'AlertActivity.java'), sub(activity));
 
@@ -175,7 +178,8 @@ fs.writeFileSync(path.join(dir, 'AlertActivity.java'), sub(activity));
 const mf = path.join(root, 'app/src/main/AndroidManifest.xml');
 let m = fs.readFileSync(mf, 'utf8');
 if (!m.includes('AlertActivity')) {
-  const perms = ['USE_FULL_SCREEN_INTENT', 'WAKE_LOCK', 'VIBRATE', 'POST_NOTIFICATIONS']
+  const extra = (process.env.EXTRA_PERMISSIONS || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const perms = ['USE_FULL_SCREEN_INTENT', 'WAKE_LOCK', 'VIBRATE', 'POST_NOTIFICATIONS', ...extra]
     .filter((p) => !m.includes('android.permission.' + p))
     .map((p) => `    <uses-permission android:name="android.permission.${p}" />\n`).join('');
   m = m.replace('<application', perms + '    <application');
