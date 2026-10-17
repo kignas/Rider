@@ -39,6 +39,9 @@ jobs:
       - name: Sync Android project
         run: npx cap sync android
 
+      - name: Add and verify Android location permissions
+        run: node scripts/ensure-location-permissions.mjs
+
       - name: Apply Eatswada Rider launcher icons
         run: |
           set -eu
