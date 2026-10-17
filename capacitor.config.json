@@ -1,6 +1,6 @@
 {
   "appId": "com.eatswada.rider",
-  "appName": "Eatswada Rider",
+  "appName": "Eatswada Delivery Partner",
   "webDir": "www",
   "server": {
     "androidScheme": "https"
