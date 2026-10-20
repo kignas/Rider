@@ -233,7 +233,7 @@ window.addEventListener('eatswada:push-received',e=>{const d=e.detail?.data||{};
 window.addEventListener('eatswada:push-opened',e=>{const d=e.detail||{};if(d.orderId)highlightOrder(d.orderId);else refresh(false)});
 $('assignBarBtn').onclick=()=>{const o=orders.find(x=>x.riderStatus==='assigned');if(o)highlightOrder(o.id)};document.addEventListener('pointerdown',()=>{Alarm.unlock();initPush();try{if(Notification.permission==='default')Notification.requestPermission()}catch{}},{once:true});
 let lastLoc=0;async function sendLocation(force=false){if(!riderPos)return;const now=Date.now();if(!force&&now-lastLoc<15000)return;lastLoc=now;try{await api('/api/riders/location',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:riderPos.lat,lng:riderPos.lng})});locDirty=false}catch{locDirty=true}}
-async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.deliveryZone].filter(Boolean).join(' • ')||'Delivery partner';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false)}
+async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.deliveryZone].filter(Boolean).join(' • ')||'Delivery partner';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false);if(r.riderDetails?.isOnline&&localStorage.getItem('eatswada_rider_background_tracking')==='1')setTimeout(()=>window.RiderBackgroundLocation?.resumeIfRequested?.(),300)}
 function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on)}async function toggleOnline(on){if(on){Alarm.unlock();try{if(Notification.permission==='default')await Notification.requestPermission()}catch{}}try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});setOnlineUI(on);toast(on?'You are online':'You are offline')}catch(e){toast(e.message)}}
 $('onlineBtn').onclick=()=>toggleOnline(!$('onlineDot').classList.contains('on'));
 function updateGpsUI(){const on=!!riderPos;$('locationBtn').textContent=on?'GPS active':'Enable GPS';$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`GPS active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'GPS off'}
@@ -243,7 +243,24 @@ async function unregisterDeviceToken(){const t=getFcmToken();if(!t)return;try{aw
    non-finite or out-of-range coordinates is rejected rather than stored. */
 function applyFix(p){const lat=p.coords.latitude,lng=p.coords.longitude;const v=RL?RL.validateCoordinates(lat,lng):{valid:Number.isFinite(lat)&&Number.isFinite(lng)};if(!v.valid){toast(v.message||'The device reported an invalid location.');return false}riderPos={lat,lng,accuracy:p.coords.accuracy,at:Date.now()};return true}
 function gpsMessage(code){if(code===1)return'Location permission was denied. Enable it in Android settings to go online.';if(code===2)return'GPS is turned off on this phone. Turn on location services.';if(code===3)return'Could not get a GPS fix in time. Move to an open area and retry.';return'Location is unavailable.'}
-function startGPS(){if(!navigator.geolocation){toast('GPS is not supported on this phone.');return}if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;riderPos=null;updateGpsUI();render();return}$('locationBtn').textContent='Locating…';gpsWatch=navigator.geolocation.watchPosition(p=>{if(applyFix(p)){updateGpsUI();render();sendLocation()}},e=>{gpsWatch=null;toast(gpsMessage(e&&e.code));updateGpsUI()},{enableHighAccuracy:true,maximumAge:10000,timeout:15000})}$('locationBtn').onclick=startGPS;
+async function startGPS(){
+  if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;riderPos=null;try{await window.RiderBackgroundLocation?.stop()}catch(e){console.warn('Could not stop native location service',e)}updateGpsUI();render();return}
+  $('locationBtn').textContent='Locating…';
+  try{
+    const bg=window.RiderBackgroundLocation;
+    if(bg?.isNativeAndroid?.()){
+      await bg.start();
+      // The native service owns location acquisition while Android backgrounds the app.
+      // The WebView callback forwards valid fixes to the existing PUT endpoint.
+      return;
+    }
+  }catch(e){$('locationBtn').textContent='Enable GPS';toast(e?.message||'Could not start background location. Check permissions.');updateGpsUI();return}
+  if(!navigator.geolocation){toast('GPS is not supported on this phone.');$('locationBtn').textContent='Enable GPS';return}
+  gpsWatch=navigator.geolocation.watchPosition(p=>{if(applyFix(p)){updateGpsUI();render();sendLocation()}},e=>{gpsWatch=null;toast(gpsMessage(e&&e.code));updateGpsUI()},{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
+}$('locationBtn').onclick=startGPS;
+window.addEventListener('eatswada:background-location',e=>{const d=e.detail||{};const p={coords:{latitude:d.lat,longitude:d.lng,accuracy:d.accuracy}};if(applyFix(p)){updateGpsUI();render();sendLocation(true)}});
+window.addEventListener('eatswada:background-location-error',e=>{const m=e.detail?.message;if(m)toast(m)});
+window.addEventListener('eatswada:background-location-ready',()=>{if(profile?.riderDetails?.isOnline)window.RiderBackgroundLocation?.resumeIfRequested?.()});
 async function checkRiderNotifications(){
   try{
     const d=await api('/api/notifications?limit=50');
