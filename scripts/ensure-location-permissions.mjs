@@ -12,7 +12,10 @@ if (!/<manifest\b[^>]*[\s\S]*?>/.test(manifest)) {
 
 const required = [
   'android.permission.ACCESS_COARSE_LOCATION',
-  'android.permission.ACCESS_FINE_LOCATION'
+  'android.permission.ACCESS_FINE_LOCATION',
+  'android.permission.FOREGROUND_SERVICE',
+  'android.permission.FOREGROUND_SERVICE_LOCATION',
+  'android.permission.POST_NOTIFICATIONS'
 ];
 const missing = required.filter(permission =>
   !new RegExp(String.raw`<uses-permission\s+[^>]*android:name=["']${permission}["']`).test(manifest)
@@ -32,4 +35,4 @@ for (const permission of required) {
     throw new Error(`Required location permission is missing after patch: ${permission}`);
   }
 }
-console.log('Verified Android manifest permissions: ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION');
+console.log('Verified location, foreground-service, and notification permissions for background tracking.');
