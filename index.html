@@ -4,7 +4,7 @@
 <link rel="icon" type="image/png" href="icon.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#D71945">
+<meta name="theme-color" content="#690D27">
 <title>Eatswada Rider</title>
 <style>
 /* Structural reset only. Visual design lives in ./theme.css so there is one
@@ -12,8 +12,8 @@
    keeps the shell usable (layout, tap targets, safe areas) even if the theme
    stylesheet fails to load on a cold webview. */
 *{box-sizing:border-box}
-html{background:#F4F4F6}
-body{margin:0;background:#F4F4F6;color:#17181C;font-family:'Manrope',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+html{background:#FFFBF2}
+body{margin:0;background:#FFFBF2;color:#1F1A17;font-family:'Manrope',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button,a,input,textarea,select{font:inherit}
 button{cursor:pointer}
 a{text-decoration:none;color:inherit}
@@ -33,8 +33,8 @@ img{max-width:100%}
 <header class="top">
   <div class="toprow">
     <div class="brand">
-      <div class="logo">E</div>
-      <div><b>Eatswada Rider</b><span>Delivery partner</span></div>
+      <div class="logo" id="brandLogo" aria-hidden="true"><img id="brandLogoImg" src="icon.png" alt="" width="36" height="36" decoding="async"></div>
+      <span class="brandName">Eatswada</span>
     </div>
     <button class="online" id="onlineBtn" type="button" aria-live="polite"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
   </div>
@@ -49,37 +49,42 @@ img{max-width:100%}
 <main class="content">
 
 <section id="homeView">
-  <div class="hero">
-    <div class="heroRow">
-      <div class="brand">
-        <div class="avatar" id="avatar">R</div>
-        <div style="min-width:0">
-          <h1 id="riderName">Rider</h1>
-          <p id="riderMeta">Delivery partner</p>
-          <div class="statusLine"><span class="miniDot" id="heroGpsDot"></span><span id="heroGpsText">Location off</span></div>
-        </div>
+  <div class="profileRow">
+    <div class="avatar" id="avatar">R</div>
+    <div class="profileInfo">
+      <h1 id="riderName">Rider</h1>
+      <div class="metaChips">
+        <span class="metaChip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="17" r="2.5"/><circle cx="17.5" cy="17" r="2.5"/><path d="M7 17l3-6h4l3.5 6"/><path d="M10 11l-1-3H7"/></svg><span id="riderMeta">Vehicle not set</span></span>
+        <span class="metaChip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span id="riderZone">Service area not set</span></span>
       </div>
+    </div>
+  </div>
+
+  <div class="statusCard" id="homeStatus">
+    <span class="pulse" aria-hidden="true"></span>
+    <div class="statusText">
+      <b id="homeStatusTitle">You're offline</b>
+      <div class="statusLine"><span class="miniDot" id="heroGpsDot"></span><span id="heroGpsText">Location off</span></div>
     </div>
     <button class="gpsChip off" id="locationBtn" type="button" aria-live="polite">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
-      <span id="locationBtnText">Turn on location</span>
+      <span id="locationBtnText">Turn on GPS</span>
     </button>
-    <div class="stats">
-      <div class="stat lead"><small>Today's earnings</small><strong id="todayEarn">₹0</strong></div>
-      <div class="stat"><small>Completed</small><strong id="todayCount">0</strong></div>
-      <div class="stat"><small>Active</small><strong id="activeCount">0</strong></div>
-    </div>
-    <div class="heroFoot">
-      <div class="progWrap">
-        <div class="progTop"><span>Today's progress</span><b id="heroProgressText">0/10</b></div>
-        <div class="progTrack" role="progressbar" aria-label="Today's delivery progress" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="heroProgress"><div class="progFill" id="heroProgressFill"></div></div>
-      </div>
-    </div>
-    <div class="heroFoot" id="heroOnlineWrap" hidden>
-      <div class="progWrap">
-        <div class="progTop"><span>Online today</span><b id="heroOnlineValue">—</b></div>
-      </div>
-    </div>
+  </div>
+
+  <div id="focusWrap"></div>
+
+  <div class="stats">
+    <div class="stat"><small>Today's earnings</small><strong id="todayEarn">₹0</strong></div>
+    <div class="stat"><small>Completed trips</small><strong id="todayCount">0</strong></div>
+    <div class="stat"><small>Active orders</small><strong id="activeCount">0</strong></div>
+  </div>
+
+  <div class="progressCard">
+    <div class="progTop"><h2>Today's progress</h2><b id="heroProgressText">0 of 10 trips</b></div>
+    <div class="progTrack" role="progressbar" aria-label="Today's delivery progress" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="heroProgress"><div class="progFill" id="heroProgressFill"></div></div>
+    <p class="progHint" id="heroProgressHint">Complete 10 trips to reach today's goal.</p>
+    <div class="progFoot" id="heroOnlineWrap" hidden><span>Online time</span><b id="heroOnlineValue">—</b></div>
   </div>
 
   <div class="shortcuts">
@@ -100,8 +105,6 @@ img{max-width:100%}
       Help
     </button>
   </div>
-
-  <div id="focusWrap"></div>
 
   <section class="section">
     <div class="sectionHead">
@@ -266,7 +269,8 @@ img{max-width:100%}
     <div><small>Estimated time</small><b id="offerEta">—</b></div>
     <div><small>Customer tip</small><b id="offerTip">₹0</b></div>
   </div>
-  <p class="offerDisclaimer">Estimate only. The final payout is recorded by Eatswada after delivery and may differ. Accepting does not guarantee a specific travel time.</p>
+  <p class="offerDisclaimer">Estimates only. Eatswada confirms the final payout after delivery, and it may differ.</p>
+  <div class="offerFooter">
   <button type="button" class="slideAccept" id="offerAccept">
     <span class="slideTrack"></span>
     <span class="slideFill" id="offerSlideFill"></span>
@@ -277,6 +281,7 @@ img{max-width:100%}
   </button>
   <p class="slideHint" id="offerSlideHint">Slide the arrow across to accept</p>
   <button type="button" class="offerLater" id="offerLater">Not now</button>
+  </div>
  </section>
 </div>
 
@@ -365,6 +370,8 @@ const FIREBASE_CONFIG={apiKey:"AIzaSyA0bqVE3RCmiJORcufx-v6Gew16GMCfFp0",authDoma
 const VAPID_KEY='BKad9s8WW_Bfl0CZxH4tSRHyYJZOou5kIOcKBZ40xNmtqHPTVvntKB93BF1DGPQt9U_aQuv5iM1Ui_vNz5Ll-NA';
 if(!localStorage.getItem('riderToken')){location.href=LOGIN;return}
 const $=id=>document.getElementById(id);
+/* Brand mark: icon.png, with an inline vector fallback so the header never shows a broken image or a stray letter. */
+(function brandLogo(){const img=$('brandLogoImg'),box=$('brandLogo');if(!img||!box)return;const fallback=()=>{box.innerHTML='<svg viewBox="0 0 36 36" fill="none" stroke="#690D27" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14h17l-1.4 14H10.9L9.5 14z"/><path d="M13.5 14v-1.5a4.5 4.5 0 0 1 9 0V14"/></svg>'};img.addEventListener('error',fallback,{once:true});if(img.complete&&img.naturalWidth===0)fallback()})();
 let profile=null,orders=[],history=[],earnings=null,page=1,historyPage=1,pages=1,historyPages=1,filter='all',otpOrderId=null,issueOrderId=null,selectedIssue='',gpsWatch=null,riderPos=null,loading=false,historyLoading=false,earningsLoading=false,refreshTimer=null,ordersRequestSeq=0,period='today',onlineSince=null;
 
 /* Local daily goal for the home progress bar. This is a UI goal, never money. */
@@ -397,7 +404,7 @@ function hav(a,b,c,d){const R=6371,p=Math.PI/180,x=Math.sin((c-a)*p/2)**2+Math.c
 function kmText(km){return km==null?'Distance unavailable':km.toFixed(1)+' km'}
 function minsText(mins){return mins==null?'Unavailable':mins+' min'}
 function clockText(iso){if(!iso)return '';const d=new Date(iso);if(!Number.isFinite(d.getTime()))return '';return d.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})}
-function durText(ms){if(!Number.isFinite(ms)||ms<=0)return '—';const mins=Math.round(ms/60000);const h=Math.floor(mins/60),m=mins%60;return h?`${h}h ${m}m`:`${m}m`}
+function durText(ms){if(!Number.isFinite(ms)||ms<0)return '—';const mins=Math.round(ms/60000);const h=Math.floor(mins/60),m=mins%60;return h?`${h}h ${m}m`:`${m}m`}
 
 async function api(path,opts={},retries=2){
   let res;const method=String(opts.method||'GET').toUpperCase();
@@ -466,9 +473,9 @@ function getFcmToken(){try{return localStorage.getItem('eatswada_rider_fcm_token
 function setFcmToken(t){try{t?localStorage.setItem('eatswada_rider_fcm_token',t):localStorage.removeItem('eatswada_rider_fcm_token')}catch{}}
 async function unregisterDeviceToken(){const t=getFcmToken();if(!t)return;try{await fetch(API_BASE+'/api/notifications/unregister-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token:t})})}catch{}setFcmToken('')}
 
-async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.deliveryZone].filter(Boolean).join(' • ')||'Delivery partner';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false)}
+async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.vehicleNumber].filter(Boolean).join(' • ')||'Vehicle not set';$('riderZone').textContent=r.riderDetails?.deliveryZone||'Service area not set';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false)}
 
-function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on);$('onlineBtn').setAttribute('aria-pressed',on?'true':'false');if(on&&!onlineSince){const saved=Number(localStorage.getItem(LS_ONLINE_SINCE)||0);onlineSince=saved||Date.now();try{localStorage.setItem(LS_ONLINE_SINCE,String(onlineSince))}catch{}}if(!on){onlineSince=null;try{localStorage.removeItem(LS_ONLINE_SINCE)}catch{}}renderOnlineTime()}
+function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on);$('onlineBtn').setAttribute('aria-pressed',on?'true':'false');const hs=$('homeStatus');if(hs){hs.classList.toggle('on',on);$('homeStatusTitle').textContent=on?"You're online":"You're offline"}if(on&&!onlineSince){const saved=Number(localStorage.getItem(LS_ONLINE_SINCE)||0);onlineSince=saved||Date.now();try{localStorage.setItem(LS_ONLINE_SINCE,String(onlineSince))}catch{}}if(!on){onlineSince=null;try{localStorage.removeItem(LS_ONLINE_SINCE)}catch{}}renderOnlineTime()}
 async function toggleOnline(on){const b=$('onlineBtn');if(b.getAttribute('aria-busy')==='true')return;b.setAttribute('aria-busy','true');if(on){Alarm.unlock();try{if(Notification.permission==='default')await Notification.requestPermission()}catch{}}try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});setOnlineUI(on);toast(on?'You are online':'You are offline')}catch(e){toast(e.message)}finally{b.removeAttribute('aria-busy')}}
 function renderOnlineTime(){const wrap=$('heroOnlineWrap');if(!wrap)return;const saved=onlineSince||Number(localStorage.getItem(LS_ONLINE_SINCE)||0);if(!saved){wrap.hidden=true;return}wrap.hidden=false;$('heroOnlineValue').textContent=durText(Date.now()-saved)}
 setInterval(renderOnlineTime,60000);
@@ -476,7 +483,7 @@ setInterval(renderOnlineTime,60000);
 /* ---- GPS ------------------------------------------------------------------ */
 function applyFix(p){const lat=p.coords.latitude,lng=p.coords.longitude;const v=RL?RL.validateCoordinates(lat,lng):{valid:Number.isFinite(lat)&&Number.isFinite(lng)};if(!v.valid){toast(v.message||'The device reported an invalid location.');return false}riderPos={lat,lng,accuracy:p.coords.accuracy,at:Date.now()};return true}
 function gpsMessage(code){if(code===1)return 'Location permission was denied. Enable it in Android settings to go online.';if(code===2)return 'GPS is turned off on this phone. Turn on location services.';if(code===3)return 'Could not get a GPS fix in time. Move to an open area and retry.';return 'Location is unavailable.'}
-function updateGpsUI(){const on=!!riderPos;$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`Location active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'Location off';const btn=$('locationBtn');btn.classList.toggle('off',!on);$('locationBtnText').textContent=on?'Location active':'Turn on location';btn.setAttribute('aria-pressed',on?'true':'false')}
+function updateGpsUI(){const on=!!riderPos;$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`Location active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'Location off';const btn=$('locationBtn');btn.classList.toggle('off',!on);$('locationBtnText').textContent=on?'GPS on':'Turn on GPS';btn.setAttribute('aria-pressed',on?'true':'false')}
 function startGPS(){if(!navigator.geolocation){toast('GPS is not supported on this phone.');return}if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;riderPos=null;updateGpsUI();render();return}$('locationBtnText').textContent='Locating…';gpsWatch=navigator.geolocation.watchPosition(p=>{if(applyFix(p)){updateGpsUI();render();sendLocation()}},e=>{gpsWatch=null;toast(gpsMessage(e&&e.code));updateGpsUI()},{enableHighAccuracy:true,maximumAge:10000,timeout:15000})}
 $('locationBtn').onclick=startGPS;
 let lastLoc=0,locDirty=false;
@@ -500,7 +507,7 @@ let firstLoad=true,lastAssigned=new Set();
 function markAssignmentNotified(id){try{const k='eatswada_rider_notified_assignments';const a=JSON.parse(localStorage.getItem(k)||'[]');if(!a.includes(String(id))){a.push(String(id));localStorage.setItem(k,JSON.stringify(a.slice(-200)));return false}return true}catch{return false}}
 function checkAssignments(){const assigned=orders.filter(o=>o.riderStatus==='assigned');const ids=assigned.map(o=>o.id);const fresh=ids.filter(id=>!lastAssigned.has(id));lastAssigned=new Set(ids);if(ids.length)Alarm.start(ids.length);else Alarm.stop();
   const recent=assigned.filter(o=>{const t=o.riderAssignedAt?new Date(o.riderAssignedAt).getTime():0;return t&&Date.now()-t<120000;}).filter(o=>!markAssignmentNotified(o.id));
-  if((!firstLoad&&fresh.length)||recent.length){const n=Math.max(fresh.length,recent.length);notify('New delivery assigned',`${n} delivery${n>1?'ies':''} waiting for your response.`);Alarm.start(ids.length||n);toast('New delivery assigned');const candidate=assigned.find(o=>fresh.includes(o.id))||recent[0]||assigned[0];if(candidate)showOffer(candidate);}
+  if((!firstLoad&&fresh.length)||recent.length){const n=Math.max(fresh.length,recent.length);notify('New delivery assigned',`${n} delivery${n>1?'ies':''} waiting for your response.`);Alarm.start(ids.length||n);const candidate=assigned.find(o=>fresh.includes(o.id))||recent[0]||assigned[0];if(candidate)showOffer(candidate);else toast('New delivery assigned');}
   firstLoad=false}
 function assignmentSeconds(o){if(!o.riderAssignedAt)return null;return Math.max(0,60-Math.floor((Date.now()-new Date(o.riderAssignedAt).getTime())/1000))}
 setInterval(()=>{orders.forEach(o=>{if(o.riderStatus==='assigned'){const e=document.getElementById('cd-'+o.id);if(e){const s=assignmentSeconds(o);e.textContent=s==null?'New':s+'s left'}}})},1000);
@@ -558,7 +565,8 @@ function renderFocus(o){
  const customerStage=['picked_up','out_for_delivery'].includes(o.riderStatus);
  const live=liveDistance(o);
  const stageName=customerStage?c.name:r.name;
- const stageDistance=customerStage?(live!=null?kmText(live)+' to drop-off':'Drop-off distance unavailable'):(restaurantDistance(o)!=null?kmText(restaurantDistance(o))+' to pickup':'Pickup distance unavailable');
+ const stageDistance=customerStage?(live!=null?kmText(live)+' to drop-off':'Distance unavailable'):(restaurantDistance(o)!=null?kmText(restaurantDistance(o))+' to pickup':'Distance unavailable');
+ const distVal=customerStage?(live!=null?kmText(live):'—'):(restaurantDistance(o)!=null?kmText(restaurantDistance(o)):'—');
  const destCoords=customerStage?deliveryCoords(o):r.location;
  const navHref=destCoords?navUrl(destCoords):(customerStage?addressNav(o):null);
  const contact=customerStage?c.phone:r.phone;
@@ -575,7 +583,7 @@ function renderFocus(o){
   </div>
   ${gate.relevant&&!gate.allowed?`<div class="issueMini" style="margin:12px 0 0"><b>Not ready yet</b>${esc(gate.reason)}</div>`:''}
   <div class="focusMeta">
-    <div class="metaBox"><small>${customerStage?'Drop distance':'Pickup distance'}</small><b>${esc(stageDistance)}</b></div>
+    <div class="metaBox"><small>${customerStage?'Drop distance':'Pickup distance'}</small><b>${esc(distVal)}</b></div>
     <div class="metaBox"><small>Rider earning</small><b>${pickRiderEarning(o)?money(pickRiderEarning(o).value):'—'}</b></div>
   </div>
   ${timeline(o.riderStatus)}
@@ -679,6 +687,7 @@ function renderWeeklyIncentive(deliveries,approx){
 /* ------------------------------------------------------------------ offer */
 let offerMap=null,offerOrderId=null,offerTimerId=null,offerAccepted=false;
 
+function dropAreaText(o){const a=o&&o.deliveryAddress;if(a&&typeof a==='object'){const area=[a.area,a.city].filter(Boolean).join(', ');if(area)return area+' · full address shared after pickup'}return 'Full address shared after pickup'}
 function offerEtaText(o){const e=etaRange(o);return e?`${e.lo}–${e.hi} min`:'Unavailable'}
 function resetSlide(){const b=$('offerAccept');b.classList.remove('done','snap');b.disabled=false;b.removeAttribute('aria-busy');$('offerSlideFill').style.width='0';$('offerSlideKnob').style.left='6px';$('offerAcceptLabel').textContent='Slide to accept delivery';$('offerSlideHint').textContent='Slide the arrow across to accept'}
 function startOfferTimer(o){stopOfferTimer();const tick=()=>{const s=assignmentSeconds(o);$('offerTimer').textContent=s==null?'':(s>0?`Expires in ${s}s`:'Expiring…')};tick();offerTimerId=setInterval(tick,1000)}
@@ -694,16 +703,17 @@ function showOffer(o){
  const earn=offerEarnings(o);
  $('offerRestaurant').textContent=r.name;
  $('offerRestaurantAddress').textContent=addr((o.restaurant&&o.restaurant.address)||o.restaurantAddress||o.pickupAddress);
- $('offerCustomerAddress').textContent=c.address;
+ $('offerCustomerAddress').textContent=dropAreaText(o);
  $('offerPickupMetric').textContent=pickup==null?'Pickup distance unavailable':'Pickup: '+kmText(pickup);
  $('offerDropMetric').textContent=drop==null?'Delivery distance unavailable':'Restaurant → customer: '+kmText(drop);
  $('offerDistance').textContent=totalDist==null?'—':kmText(totalDist);
  $('offerEta').textContent=offerEtaText(o);
  const tip=pickCustomerTip(o);
- $('offerTip').textContent=money(tip==null?0:tip);
+ $('offerTip').textContent=tip==null?'None yet':money(tip.value??tip);
  $('offerTotal').textContent=money(earn.sum);
- $('offerBreakdown').innerHTML=earn.lines.map(l=>`<div class="row"><span class="rowLabel"><i class="${l.source==='backend'?'ok':'brand'}"></i>${esc(l.label)}${l.source==='policy'?' <span style="color:var(--faint);font-weight:700">(policy)</span>':''}</span><b>${money(l.value)}</b></div>`).join('')+`<div class="row total"><span class="rowLabel">Estimated total</span><b>${money(earn.sum)}</b></div>`;
- $('offerEarningNote').textContent=earn.estimate?'Includes Eatswada offer policy values — the final payout is confirmed after delivery.':'Built from the amounts already recorded on this order.';
+ $('offerBreakdown').innerHTML=earn.lines.map(l=>`<div class="row"><span class="rowLabel"><i class="${l.source==='backend'?'ok':'brand'}"></i>${esc(l.label)}${l.source==='policy'?` <span style="color:var(--faint);font-weight:700">${l.label==='Customer tip'?'(if any)':'(estimate)'}</span>`:''}</span><b>${money(l.value)}</b></div>`).join('')+`<div class="row total"><span class="rowLabel">Estimated total</span><b>${money(earn.sum)}</b></div>`;
+ const pol=(RL&&RL.OFFER_POLICY)||{deliveryFee:25,bonus:10};
+ $('offerEarningNote').textContent=earn.estimate?`Estimate: standard ₹${pol.deliveryFee} delivery + ₹${pol.bonus} Eatswada bonus, plus any customer tip. Final payout is confirmed after delivery.`:'Built from the amounts already recorded on this order.';
  resetSlide();
  $('offerOverlay').classList.remove('hidden');
  document.body.classList.add('offerOpen');
@@ -729,7 +739,7 @@ function drawOfferMap(rider,restaurantCoords,customerCoords){
   if(!offerMap){offerMap=L.map(el,{zoomControl:false,scrollWheelZoom:false}).setView([26.5,88.7],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(offerMap)}
   offerMap.eachLayer(l=>{if(l instanceof L.Marker||l instanceof L.Polyline)offerMap.removeLayer(l)});
   pts.forEach(({pt,label})=>{L.marker([pt.lat,pt.lng]).addTo(offerMap).bindPopup(label)});
-  if(pts.length>1)L.polyline(pts.map(p=>[p.pt.lat,p.pt.lng]),{color:'#D71945',weight:4,dashArray:'8 7'}).addTo(offerMap);
+  if(pts.length>1)L.polyline(pts.map(p=>[p.pt.lat,p.pt.lng]),{color:'#690D27',weight:4,dashArray:'8 7'}).addTo(offerMap);
   offerMap.fitBounds(pts.map(p=>[p.pt.lat,p.pt.lng]),{padding:[26,26],maxZoom:15});
   pill.hidden=false;$('mapPillText').textContent=pts.length>1?(pts.length===3?'You → Pickup → Drop':'Pickup → Drop'):pts[0].label;
   setTimeout(()=>{try{offerMap.invalidateSize()}catch{}},120);
@@ -873,7 +883,9 @@ function renderHeroProgress(){
     derived from the order total, which is what the customer paid. */
  $('todayEarn').textContent=earnings?money(today.earnings):'—';
  $('todayCount').textContent=earnings?done:'—';
- $('heroProgressText').textContent=`${done}/${DAILY_TARGET}`;
+ $('heroProgressText').textContent=`${done} of ${DAILY_TARGET} trips`;
+ const left=Math.max(0,DAILY_TARGET-done);
+ $('heroProgressHint').textContent=!earnings?'Loading today\'s progress…':(left?`${left} more ${left===1?'trip':'trips'} to reach today's goal.`:'Daily goal reached. Great work!');
  $('heroProgressFill').style.width=Math.min(100,Math.round(done/DAILY_TARGET*100))+'%';
  $('heroProgress').setAttribute('aria-valuenow',String(Math.min(done,DAILY_TARGET)));
  $('heroProgress').setAttribute('aria-valuemax',String(DAILY_TARGET));
