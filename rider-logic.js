@@ -174,19 +174,23 @@
     return map[s] || (s ? s : 'Unknown');
   }
 
-  /* The single rule the dashboard needs before allowing "Picked up":
-   * the backend only accepts picked_up when order.status is
-   * waiting_for_rider or assigned (see updateAssignedOrderStatus). */
+  /* The rule the dashboard needs before allowing "Picked up". The backend only
+   * accepts picked_up when the order has been released by the kitchen, i.e.
+   * order.status is waiting_for_rider, assigned or otp_verified. The gate is
+   * only relevant while the rider is at the restaurant waiting to collect: once
+   * the order is picked_up the rider is past the restaurant and must be able to
+   * continue to delivery. */
   function pickupGate(order) {
     const o = order || {};
     const riderStatus = String(o.riderStatus || '');
-    if (!['reached_restaurant', 'picked_up'].includes(riderStatus)) {
+    const orderStatus = String(o.status || '');
+    if (riderStatus !== 'reached_restaurant') {
       return { relevant: false, allowed: true, reason: '' };
     }
-    if (o.status === 'cancelled') {
+    if (orderStatus === 'cancelled') {
       return { relevant: true, allowed: false, reason: 'This order has been cancelled.' };
     }
-    if (PICKUP_ALLOWED_ORDER_STATUSES.includes(o.status)) {
+    if (PICKUP_ALLOWED_ORDER_STATUSES.includes(orderStatus)) {
       return { relevant: true, allowed: true, reason: '' };
     }
     return {
@@ -228,6 +232,87 @@
     return (now == null ? Date.now() : now) - t <= max;
   }
 
+  /* ---- Earnings truthfulness ------------------------------------------------
+   * Rider earnings may only come from a field the backend uses for rider pay.
+   * A generic order total (or the COD amount the customer hands over) is money
+   * the customer paid, never the rider's pay, so it is deliberately excluded
+   * from every rider-earning calculation.
+   */
+  const RIDER_EARNING_FIELDS = ['riderEarning', 'riderEarnings', 'riderPay', 'riderPayout', 'riderFee', 'deliveryEarning'];
+  const ORDER_TOTAL_FIELDS = ['total', 'orderTotal', 'grandTotal', 'amount'];
+  const CUSTOMER_TIP_FIELDS = ['tipAmount', 'customerTip', 'tip', 'deliveryTip'];
+  const ORDER_BONUS_FIELDS = ['eatswadaBonus', 'riderBonus', 'deliveryBonus', 'bonus', 'platformBonus'];
+
+  function firstNumber(source, fields) {
+    const s = source || {};
+    for (const field of fields) {
+      const raw = s[field];
+      if (raw === null || raw === undefined || raw === '') continue;
+      const value = Number(raw);
+      if (Number.isFinite(value)) return { value, field };
+    }
+    return null;
+  }
+
+  function pickRiderEarning(order) { return firstNumber(order, RIDER_EARNING_FIELDS); }
+  function pickOrderTotal(order) { return firstNumber(order, ORDER_TOTAL_FIELDS); }
+  function pickOrderBonus(order) { return firstNumber(order, ORDER_BONUS_FIELDS); }
+  function pickCustomerTip(order) {
+    const hit = firstNumber(order, CUSTOMER_TIP_FIELDS);
+    if (hit) return hit;
+    const paise = Number((order || {}).tipAmountPaise);
+    return Number.isFinite(paise) ? { value: paise / 100, field: 'tipAmountPaise' } : null;
+  }
+
+  /* The documented Eatswada offer policy. Used only when the order does not
+   * carry real amounts, and the caller must label those lines as estimates. */
+  const OFFER_POLICY = { deliveryFee: 25, bonus: 10 };
+
+  function offerEarnings(order, policy) {
+    const p = Object.assign({}, OFFER_POLICY, policy || {});
+    const o = order || {};
+    const lines = [];
+    let estimate = false;
+
+    const riderEarning = pickRiderEarning(o);
+    if (riderEarning) lines.push({ label: 'Delivery earning', value: riderEarning.value, source: 'backend' });
+    else { lines.push({ label: 'Delivery earning', value: p.deliveryFee, source: 'policy' }); estimate = true; }
+
+    const bonus = pickOrderBonus(o);
+    if (bonus) lines.push({ label: 'Eatswada bonus', value: bonus.value, source: 'backend' });
+    else { lines.push({ label: 'Eatswada bonus', value: p.bonus, source: 'policy' }); estimate = true; }
+
+    const tip = pickCustomerTip(o);
+    if (tip && tip.value > 0) lines.push({ label: 'Customer tip', value: tip.value, source: 'backend' });
+    else lines.push({ label: 'Customer tip', value: 0, source: tip ? 'backend' : 'policy' });
+
+    return { lines, sum: lines.reduce((sum, line) => sum + line.value, 0), estimate };
+  }
+
+  /* Weekly incentive ladder: cumulative ₹50 at 10 deliveries, ₹100 at 20 and
+   * ₹150 at 30, per Monday–Sunday IST week. */
+  function weeklyIncentive(deliveries) {
+    const n = Math.max(0, Math.floor(Number(deliveries) || 0));
+    const milestone = n >= 30 ? 30 : n >= 20 ? 20 : n >= 10 ? 10 : 0;
+    const amount = milestone === 30 ? 150 : milestone === 20 ? 100 : milestone === 10 ? 50 : 0;
+    const next = n < 10 ? 10 : n < 20 ? 20 : n < 30 ? 30 : null;
+    return {
+      deliveries: n,
+      milestone,
+      amount,
+      next,
+      remaining: next === null ? 0 : next - n,
+      progress: Math.min(100, (n / 30) * 100),
+    };
+  }
+
+  /* Completed-delivery count from an earnings block, tolerating the field names
+   * the backend has used. Returns null when the block carries no count. */
+  function earningsOrderCount(block) {
+    const hit = firstNumber(block, ['deliveries', 'orders', 'count', 'totalDeliveries']);
+    return hit ? hit.value : null;
+  }
+
   return {
     VEHICLE_TYPES,
     APPLICATION_STATUSES,
@@ -237,6 +322,9 @@
     EMAIL_REGEX,
     OTP_REGEX,
     MAX_APPLICATION_REF_AGE_MS,
+    RIDER_EARNING_FIELDS,
+    ORDER_TOTAL_FIELDS,
+    OFFER_POLICY,
     normalizePhone,
     normalizeVehicleType,
     normalizeEmail,
@@ -254,5 +342,13 @@
     isValidOtp,
     validateCoordinates,
     isFreshLocation,
+    firstNumber,
+    pickRiderEarning,
+    pickOrderTotal,
+    pickOrderBonus,
+    pickCustomerTip,
+    offerEarnings,
+    weeklyIncentive,
+    earningsOrderCount,
   };
 });
