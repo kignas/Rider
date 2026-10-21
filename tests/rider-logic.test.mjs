@@ -150,3 +150,64 @@ test('isFreshLocation honours the backend location freshness window', () => {
   assert.equal(L.isFreshLocation('2026-01-31T00:00:00Z', now), false); // 5 min old
   assert.equal(L.isFreshLocation('not-a-date', now), false);
 });
+
+/* ---- Earnings truthfulness (redesign) ---- */
+
+test('pickRiderEarning only reads rider-specific earning fields', () => {
+  assert.equal(L.pickRiderEarning({ riderEarning: 42 }).value, 42);
+  assert.equal(L.pickRiderEarning({ deliveryEarning: '30.5' }).value, 30.5);
+  // A customer order total is not rider pay.
+  assert.equal(L.pickRiderEarning({ total: 420 }), null);
+  assert.equal(L.pickRiderEarning({}), null);
+  assert.equal(L.pickRiderEarning(null), null);
+});
+
+test('pickOrderTotal reads the customer total but never the COD-only amount', () => {
+  assert.equal(L.pickOrderTotal({ total: 420 }).value, 420);
+  assert.equal(L.pickOrderTotal({ orderTotal: 99 }).value, 99);
+  assert.equal(L.pickOrderTotal({ tipAmount: 5 }), null);
+});
+
+test('pickCustomerTip handles paise and rupee fields', () => {
+  assert.equal(L.pickCustomerTip({ tipAmount: 15 }).value, 15);
+  assert.equal(L.pickCustomerTip({ customerTip: 7 }).value, 7);
+  assert.equal(L.pickCustomerTip({ tipAmountPaise: 1500 }).value, 15);
+  assert.equal(L.pickCustomerTip({}), null);
+});
+
+test('offerEarnings uses backend amounts when present and flags estimates otherwise', () => {
+  const real = L.offerEarnings({ riderEarning: 25, eatswadaBonus: 10, tipAmount: 5 });
+  assert.equal(real.sum, 40);
+  assert.equal(real.estimate, false);
+  assert.deepEqual(real.lines.map((l) => l.source), ['backend', 'backend', 'backend']);
+
+  const policy = L.offerEarnings({});
+  assert.equal(policy.sum, L.OFFER_POLICY.deliveryFee + L.OFFER_POLICY.bonus);
+  assert.equal(policy.estimate, true);
+  assert.ok(policy.lines.every((l) => l.source === 'policy'));
+
+  // A customer total alone must not be treated as the rider's delivery earning.
+  const totalOnly = L.offerEarnings({ total: 500 });
+  assert.equal(totalOnly.estimate, true);
+  assert.equal(totalOnly.lines[0].value, L.OFFER_POLICY.deliveryFee);
+});
+
+test('weeklyIncentive follows the cumulative ₹50/₹100/₹150 ladder', () => {
+  assert.deepEqual(
+    [0, 9, 10, 19, 20, 29, 30, 45].map((n) => L.weeklyIncentive(n).amount),
+    [0, 0, 50, 50, 100, 100, 150, 150]
+  );
+  assert.equal(L.weeklyIncentive(7).next, 10);
+  assert.equal(L.weeklyIncentive(7).remaining, 3);
+  assert.equal(L.weeklyIncentive(25).next, 30);
+  assert.equal(L.weeklyIncentive(30).next, null);
+  assert.equal(L.weeklyIncentive(-4).deliveries, 0);
+});
+
+test('earningsOrderCount tolerates the backend count field names', () => {
+  assert.equal(L.earningsOrderCount({ deliveries: 12 }), 12);
+  assert.equal(L.earningsOrderCount({ orders: 4 }), 4);
+  assert.equal(L.earningsOrderCount({ count: 0 }), 0);
+  assert.equal(L.earningsOrderCount({}), null);
+  assert.equal(L.earningsOrderCount(null), null);
+});
