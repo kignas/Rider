@@ -105,6 +105,10 @@
       });
 
       const permission = await Push.requestPermissions();
+      // Tell the dashboard so it can show a gentle warning; denial never blocks the app.
+      window.dispatchEvent(new CustomEvent('eatswada:push-permission', {
+        detail: { state: permission.receive === 'granted' ? 'granted' : (permission.receive === 'denied' ? 'denied' : 'default') }
+      }));
       if (permission.receive !== 'granted') {
         console.warn('[Eatswada native push] Notification permission not granted.');
         return;

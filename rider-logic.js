@@ -313,6 +313,80 @@
     return hit ? hit.value : null;
   }
 
+
+  /* ---- Duplicate-submission guard -------------------------------------------
+   * One in-flight request per key (an order id). The dashboard renders the same
+   * action button in the focus card and in the order list, so a per-button
+   * "disabled" flag is not enough: a second tap on the twin button, or a tap
+   * after a poll re-render, would send a second status PUT. */
+  function createInFlightGuard() {
+    const active = new Set();
+    return {
+      isBusy(key) { return active.has(String(key)); },
+      async run(key, fn) {
+        const k = String(key);
+        if (active.has(k)) return { skipped: true };
+        active.add(k);
+        try { return { skipped: false, value: await fn() }; }
+        finally { active.delete(k); }
+      },
+    };
+  }
+
+  /* Delivery completion is two calls (verify-otp, then status=delivered). If the
+   * first succeeded and the second failed, the retry must not re-submit the PIN:
+   * the backend has already consumed it (order.status becomes otp_verified). */
+  function nextDeliveryStep(orderId, verifiedIds, orderStatus) {
+    const done = verifiedIds && typeof verifiedIds.has === 'function' && verifiedIds.has(String(orderId));
+    return done || String(orderStatus || '') === 'otp_verified' ? 'deliver-only' : 'verify-and-deliver';
+  }
+
+  /* Warnings for the home screen. Pure: every input is a fact the page has
+   * actually observed (server-confirmed online flag, last GPS fix, permission
+   * state). Nothing here is inferred from missing data except "no fix yet". */
+  function homeAlerts(state) {
+    const s = state || {};
+    const out = [];
+    if (s.online && !s.hasLocation) {
+      out.push({
+        id: 'location-off', tone: 'warn', title: 'Location is off',
+        body: 'Eatswada needs your location to match you with nearby orders.',
+        action: { id: 'enable-location', label: 'Turn on location' },
+      });
+    } else if (s.online && s.hasLocation && s.locationAt != null &&
+               !isFreshLocation(new Date(s.locationAt).toISOString(), s.now, s.maxAgeMs)) {
+      out.push({
+        id: 'location-stale', tone: 'warn', title: 'Location is out of date',
+        body: 'Your last GPS fix is old. Move to an open area or check that location services are on.',
+      });
+    }
+    if (s.online && s.native && s.hasLocation && s.backgroundTracking === 'off') {
+      out.push({
+        id: 'location-foreground-only', tone: 'info', title: 'Location updates only while the app is open',
+        body: 'Keep Eatswada on screen, or allow background location when asked, so dispatch keeps seeing you.',
+      });
+    }
+    if (s.notificationState === 'denied') {
+      out.push({
+        id: 'notifications-blocked', tone: 'warn', title: 'Delivery alerts are blocked',
+        body: 'You may miss new orders while the app is closed. Turn notifications on in Android Settings → Apps → Eatswada Delivery Partner.',
+      });
+    }
+    return out;
+  }
+
+  /* Weekly-incentive wording. The ladder is a documented policy, but the
+   * earnings API returns a rolling 7-day block unless it also supplies the
+   * week window; in that case no amount is presented as "unlocked". */
+  function incentiveDisplay(incentive, exact, formatMoney) {
+    const w = incentive || weeklyIncentive(0);
+    const fmt = typeof formatMoney === 'function' ? formatMoney : (n => '₹' + n);
+    if (!exact) {
+      return { amountText: '—', earnedText: 'Progress is approximate', approximate: true };
+    }
+    return { amountText: fmt(w.amount), earnedText: w.amount > 0 ? fmt(w.amount) + ' reached — confirmed by Eatswada' : 'Not reached yet', approximate: false };
+  }
+
   return {
     VEHICLE_TYPES,
     APPLICATION_STATUSES,
@@ -350,5 +424,9 @@
     offerEarnings,
     weeklyIncentive,
     earningsOrderCount,
+    createInFlightGuard,
+    nextDeliveryStep,
+    homeAlerts,
+    incentiveDisplay,
   };
 });

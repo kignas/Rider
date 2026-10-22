@@ -195,11 +195,6 @@ body{background:var(--bg);color:var(--text)}
 .gpsChip:active{transform:scale(.97)}
 .gpsChip:not(.off){background:#fff;border-color:rgba(24,160,106,.4);color:var(--okDark)}
 
-/* Short, plain-language reason shown before the OS location prompt appears. */
-.locationHint{
-  margin:10px 2px 0;font-size:12px;line-height:1.5;color:var(--muted);font-weight:600;
-}
-
 /* ============================ home: stats ============================ */
 .stats{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;margin-top:14px}
 .stat{
@@ -631,3 +626,22 @@ body{background:var(--bg);color:var(--text)}
   .offerMoney strong{font-size:34px}
   .earnHero h1{font-size:36px}
 }
+
+
+/* ============ v1.1 additions: go-online control, home alerts ============ */
+.goBtn{width:100%;min-height:56px;margin:10px 0 12px;font-size:16px;border-radius:var(--r)}
+.goBtn.stop{background:#fff;color:var(--brand);border-color:var(--brand)}
+.goBtn[aria-busy="true"]{opacity:.7}
+.homeAlerts:empty{display:none}
+.homeAlerts{display:grid;gap:10px;margin:0 0 12px}
+.homeAlert{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-sm);border:1px solid rgba(178,106,0,.25);background:var(--warnSoft);color:#5c3a00}
+.homeAlert.info{background:var(--infoSoft);border-color:rgba(37,99,235,.2);color:#17327a}
+.homeAlertText{flex:1;min-width:0}
+.homeAlertText b{display:block;font-size:13.5px;margin-bottom:2px}
+.homeAlertText span{display:block;font-size:12.5px;line-height:1.45}
+.homeAlert .btn{flex:none;min-height:44px;padding:8px 14px;font-size:13px}
+@media (max-width:360px){.homeAlert{flex-direction:column;align-items:stretch}.homeAlert .btn{width:100%}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* the header pill is a real control now: meet the 44px touch-target guideline */
+.online{min-height:44px}
