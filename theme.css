@@ -645,3 +645,122 @@ body{background:var(--bg);color:var(--text)}
 
 /* the header pill is a real control now: meet the 44px touch-target guideline */
 .online{min-height:44px}
+
+/* ============ v1.2 additions: surge, cooldown, COD ceiling, geofence,
+   wait-time/kitchen handshake, doorstep payment, earning breakdown,
+   settlement ledger ============ */
+
+/* Rain / peak surge pill in the header */
+.surgePill{
+  margin:8px 0 0;padding:8px 14px;border-radius:var(--r-pill);
+  background:linear-gradient(90deg,#1D4ED8,#2563EB);color:#fff;
+  font-size:12.5px;font-weight:800;letter-spacing:.01em;text-align:center;
+  box-shadow:0 6px 16px rgba(37,99,235,.28)
+}
+
+/* Rejection warning + live cooldown countdown */
+.rejectionWarn{
+  margin:0 0 10px;padding:11px 14px;border-radius:var(--r-sm);
+  background:var(--warnSoft);border:1px solid rgba(178,106,0,.25);color:#5c3a00;
+  font-size:12.5px;font-weight:700;line-height:1.45
+}
+.cooldownBanner{
+  margin:0 0 10px;padding:12px 14px;border-radius:var(--r-sm);
+  background:var(--dangerSoft);border:1px solid rgba(200,40,58,.25);color:#7a1220;
+  font-size:13.5px;font-weight:800;line-height:1.45;
+  font-variant-numeric:tabular-nums;text-align:center
+}
+
+/* COD cash-in-hand progress card (Home + Earnings) */
+.cashCard{
+  margin:0 0 12px;padding:14px 16px;border-radius:var(--r-lg);
+  background:var(--surface);box-shadow:var(--shadow)
+}
+.cashTop{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
+.cashTop h2{margin:0;font-size:13px;font-weight:800;letter-spacing:.01em;color:var(--text)}
+.cashTop b{font:800 17px var(--font);color:var(--brand);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cashTop b span{color:var(--muted);font-weight:700;font-size:13px}
+.cashTrack{height:10px;border-radius:99px;background:var(--surface3);overflow:hidden}
+.cashFill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--ok),#E8B21D);transition:width .35s ease}
+.cashFill.full{background:linear-gradient(90deg,var(--warn),var(--danger))}
+.cashHint{margin-top:8px;font-size:11.5px;line-height:1.5;color:var(--muted)}
+.cashWarn{
+  margin-top:10px;padding:11px 13px;border-radius:var(--r-sm);
+  background:var(--dangerSoft);border:1px solid rgba(200,40,58,.25);color:#7a1220;
+  font-size:12.5px;font-weight:700;line-height:1.5
+}
+
+/* 200 m pickup geofence badge */
+.geofence{
+  margin:0 16px 13px;padding:10px 13px;border-radius:var(--r-sm);
+  font-size:12.5px;font-weight:800;line-height:1.4;font-variant-numeric:tabular-nums
+}
+.geofence.inside{background:var(--okSoft);border:1px solid rgba(24,160,106,.22);color:#0b5c3a}
+.geofence.outside{background:var(--warnSoft);border:1px solid rgba(178,106,0,.22);color:#7a4c00}
+.geofence.unknown{background:var(--surface3);border:1px solid var(--line);color:var(--muted)}
+
+/* Counter wait-time + kitchen readiness handshake */
+.kitchenPanel{margin:0 16px 13px;padding:13px;border-radius:var(--r-sm);background:var(--surface2);border:1px solid var(--line)}
+.waitTimer{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.waitNote{margin-top:4px;font-size:11.5px;line-height:1.5;color:var(--muted)}
+.kitchenStatus{margin-top:10px;padding:10px 12px;border-radius:var(--r-sm);font-size:12.5px;font-weight:800;line-height:1.4}
+.kitchenStatus.prep{background:var(--warnSoft);border:1px solid rgba(178,106,0,.22);color:#7a4c00;font-variant-numeric:tabular-nums}
+.kitchenStatus.ready{background:var(--okSoft);border:1px solid rgba(24,160,106,.28);color:#0b5c3a;font-size:13.5px;animation:readyPulse 1.4s ease 2}
+@keyframes readyPulse{0%,100%{transform:none}50%{transform:scale(1.015)}}
+
+/* Counter handover strip: 4-digit pickup ID + cutlery */
+.handoverStrip{display:flex;flex-wrap:wrap;gap:8px;margin:0 16px 13px}
+.pickupCode,.cutleryBadge{
+  padding:7px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:800;
+  font-variant-numeric:tabular-nums;white-space:nowrap
+}
+.pickupCode{background:var(--brandSoft);color:var(--brandDark);letter-spacing:.06em}
+.cutleryBadge{background:var(--infoSoft);color:#17327a}
+
+/* Doorstep payment banner (COD vs prepaid) */
+.payBanner{
+  margin:0 16px 13px;padding:13px 14px;border-radius:var(--r-sm);
+  font-size:13.5px;font-weight:900;line-height:1.45;text-align:center;letter-spacing:.01em
+}
+.payBanner.cod{background:#FFF1D6;border:1.5px solid var(--warn);color:#7a2f00;box-shadow:0 0 0 3px rgba(178,106,0,.1)}
+.payBanner.prepaid{background:var(--okSoft);border:1.5px solid rgba(24,160,106,.35);color:#0b5c3a}
+
+/* COD cash confirmation toggle inside the OTP sheet */
+.codConfirm{display:flex;align-items:flex-start;gap:10px;margin:0 0 12px;padding:12px;border-radius:var(--r-sm);background:var(--warnSoft);border:1px solid rgba(178,106,0,.25);font-size:12.5px;font-weight:700;color:#5c3a00;line-height:1.45}
+.codConfirm input{width:20px;height:20px;flex:none;margin:1px 0 0;accent-color:var(--brand)}
+.codConfirm[hidden]{display:none}
+
+/* Counter handover sheet summary */
+.handover{padding:0 0 4px}
+.handoverRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.handoverRow:last-child{border-bottom:0}
+.handoverRow small{color:var(--muted);font-weight:700;flex:none}
+.handoverRow b{font-weight:800;text-align:right;min-width:0;overflow-wrap:anywhere}
+.handoverRow.big b{font-size:20px;letter-spacing:.14em;color:var(--brand)}
+
+/* Expandable per-order earning breakdown */
+.earnBreak{margin:0 16px 13px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface2);overflow:hidden}
+.earnBreak summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer;list-style:none}
+.earnBreak summary::-webkit-details-marker{display:none}
+.earnBreak summary::after{content:"▾";margin-left:6px;color:var(--faint);font-size:11px}
+.earnBreak[open] summary::after{content:"▴"}
+.earnBreak summary span{flex:1;text-transform:uppercase;letter-spacing:.05em;font-size:11px}
+.earnBreak summary b{font-size:15px;color:var(--brand);font-variant-numeric:tabular-nums}
+.earnBreak .row{padding:8px 0;font-size:12.5px}
+.earnBreak .row:last-child{border-bottom:0}
+.rowHint{color:var(--faint);font-weight:700;font-size:11px}
+
+/* Settlement net-balance banner + ledger heads */
+.netBanner{padding:13px 14px;border-radius:var(--r-sm);font-size:14.5px;font-weight:900;text-align:center;line-height:1.4;font-variant-numeric:tabular-nums}
+.netBanner.ok{background:var(--okSoft);border:1px solid rgba(24,160,106,.25);color:#0b5c3a}
+.netBanner.warn{background:var(--warnSoft);border:1px solid rgba(178,106,0,.28);color:#7a2f00}
+.ledgerHead{margin:6px 0 2px;font-size:11px;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.locationHint{margin:8px 2px 12px;font-size:12px;line-height:1.5;color:var(--muted)}
+.locationHint[hidden]{display:none}
+
+/* Order-by-order earnings list (Earnings tab) */
+.perOrder{border-bottom:1px solid var(--line);padding:4px 0 10px}
+.perOrder:last-child{border-bottom:0}
+.perOrderHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 0 2px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.perOrderHead b{font-size:15px;color:var(--brand);font-variant-numeric:tabular-nums}
+.perOrder .earnBreak{margin:6px 0 4px}

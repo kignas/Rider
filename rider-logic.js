@@ -314,6 +314,353 @@
   }
 
 
+  /* ---- Money formatting -----------------------------------------------------
+   * One shared formatter so every ₹ figure the rider sees is written the same
+   * way (Indian digit grouping, no invented precision). */
+  function rupees(value, decimals) {
+    const v = Number(value);
+    const safe = Number.isFinite(v) ? v : 0;
+    const d = Math.max(0, Math.min(2, Math.floor(Number(decimals) || 0)));
+    return '₹' + safe.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+
+  /* ---- Surge, rejection cooldown and the COD cash ceiling -------------------
+   * These are dispatch policies the backend owns. The app only presents the
+   * values it was actually given and never invents a bonus or a limit. */
+  const REJECTION_LIMIT = 3;
+  const REJECTION_COOLDOWN_MINUTES = 15;
+  const COD_CASH_LIMIT_DEFAULT = 2000;
+  const RAIN_SURGE_BONUS_FIELDS = ['rainSurgeBonus', 'surgeBonus', 'peakSurgeBonus', 'rainSurgeAmount', 'surgeAmount', 'rainBonus'];
+
+  /* A surge is active only when a payload explicitly says so. The bonus amount
+   * is shown only when the backend supplied one. */
+  function rainSurgeInfo(profile, order) {
+    const p = profile || {};
+    const details = p.riderDetails || {};
+    const o = order || {};
+    const active = [p, details, o].some(
+      s => s && (s.isRainSurgeActive === true || s.rainSurgeActive === true)
+    );
+    if (!active) return { active: false, bonus: null, text: '' };
+    const hit = firstNumber(o, RAIN_SURGE_BONUS_FIELDS) || firstNumber(details, RAIN_SURGE_BONUS_FIELDS) || firstNumber(p, RAIN_SURGE_BONUS_FIELDS);
+    const bonus = hit ? hit.value : null;
+    return {
+      active: true,
+      bonus,
+      text: bonus == null
+        ? '🌧️ Rain Surge Active: surge bonus applies per delivery'
+        : '🌧️ Rain Surge Active: +' + rupees(bonus) + ' bonus per delivery',
+    };
+  }
+
+  /* Consecutive-rejection warning. Visible only when the rider has actually
+   * rejected an order, so a fresh rider never sees a scare banner. */
+  function rejectionWarning(riderDetails) {
+    const d = riderDetails || {};
+    const count = Math.max(0, Math.floor(Number(d.consecutiveRejections) || 0));
+    const limit = Math.max(1, Math.floor(Number(d.rejectionLimit) || REJECTION_LIMIT));
+    if (!count) return { visible: false, count: 0, limit, remaining: limit, cooldownMinutes: REJECTION_COOLDOWN_MINUTES, message: '' };
+    const remaining = Math.max(0, limit - count);
+    const minutes = Math.max(1, Math.floor(Number(d.rejectionCooldownMinutes) || REJECTION_COOLDOWN_MINUTES));
+    return {
+      visible: true,
+      count,
+      limit,
+      remaining,
+      cooldownMinutes: minutes,
+      message: remaining > 0
+        ? 'Rejections: ' + count + '/' + limit + ' — Next rejection triggers ' + minutes + 'm cooldown'
+        : 'Rejections: ' + count + '/' + limit + ' — Limit reached; the next rejection applies a ' + minutes + 'm cooldown',
+    };
+  }
+
+  /* Live MM:SS countdown for an active rejection cooldown. */
+  function cooldownRemaining(cooldownUntil, now) {
+    const at = Date.parse(cooldownUntil);
+    if (!Number.isFinite(at)) return { active: false, ms: 0, seconds: 0, text: '' };
+    const t = now == null ? Date.now() : now;
+    const ms = at - t;
+    if (ms <= 0) return { active: false, ms: 0, seconds: 0, text: '' };
+    const total = Math.ceil(ms / 1000);
+    const mm = String(Math.floor(total / 60)).padStart(2, '0');
+    const ss = String(total % 60).padStart(2, '0');
+    return { active: true, ms, seconds: total, text: '⏸️ Cooldown Active: ' + mm + ':' + ss + ' remaining' };
+  }
+
+  function rejectionTracker(riderDetails, now) {
+    const d = riderDetails || {};
+    return { warning: rejectionWarning(d), cooldown: cooldownRemaining(d.cooldownUntil, now) };
+  }
+
+  /* COD cash-in-hand against the rider's ceiling. The ceiling falls back to the
+   * documented ₹2,000 policy only when the backend did not send one. */
+  function codCashStatus(cashInHand, codCashLimit) {
+    const cash = Math.max(0, Number(cashInHand) || 0);
+    const raw = Number(codCashLimit);
+    const limit = Number.isFinite(raw) && raw > 0 ? raw : COD_CASH_LIMIT_DEFAULT;
+    const reached = cash >= limit;
+    return {
+      cash,
+      limit,
+      reached,
+      pct: Math.min(100, Math.round((cash / limit) * 100)),
+      label: 'COD Cash in Hand: ' + rupees(cash) + ' / ' + rupees(limit),
+      warning: reached
+        ? '⚠️ COD Cash Limit Reached — Deposit cash with Admin to unlock new COD orders (Prepaid UPI orders still active).'
+        : '',
+    };
+  }
+
+
+  /* ---- Pickup geofence ------------------------------------------------------
+   * Straight-line metres between the rider's live fix and the restaurant. The
+   * 200 m zone is the pickup zone; the backend remains the authority on whether
+   * a reached_restaurant call is accepted. */
+  const GEOFENCE_RADIUS_M = 200;
+
+  /* Number(null) and Number('') are both 0, so a plain Number() check would turn
+   * a missing coordinate into the valid-looking point 0,0 (Null Island). Reject
+   * absent values explicitly before converting. */
+  function finiteCoord(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function coordinatesOf(source) {
+    const s = source || {};
+    const raw = s.coordinates || (s.location && s.location.coordinates);
+    if (Array.isArray(raw) && raw.length >= 2) {
+      const lng = finiteCoord(raw[0]);
+      const lat = finiteCoord(raw[1]);
+      if (lat !== null && lng !== null) return { lat, lng };
+    }
+    const flat = (latKey, lngKey) => {
+      const lat = finiteCoord(s[latKey]);
+      const lng = finiteCoord(s[lngKey]);
+      return lat !== null && lng !== null ? { lat, lng } : null;
+    };
+    return flat('latitude', 'longitude') || flat('lat', 'lng');
+  }
+
+  function restaurantCoordinates(order) {
+    const o = order || {};
+    const r = o.restaurant && typeof o.restaurant === 'object' ? o.restaurant : {};
+    return coordinatesOf(r.location || r.coordinates)
+      || coordinatesOf(o.restaurantLocation)
+      || coordinatesOf(o.pickupLocation);
+  }
+
+  function haversineMeters(lat1, lng1, lat2, lng2) {
+    const nums = [lat1, lng1, lat2, lng2].map(Number);
+    if (nums.some(n => !Number.isFinite(n))) return null;
+    const [a, b, c, d] = nums;
+    const R = 6371000, p = Math.PI / 180;
+    const x = Math.sin((c - a) * p / 2) ** 2 + Math.cos(a * p) * Math.cos(c * p) * Math.sin((d - b) * p / 2) ** 2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(x)));
+  }
+
+  function geofenceStatus(distanceM, radiusM) {
+    const rawRadius = Number(radiusM);
+    const radius = Number.isFinite(rawRadius) && rawRadius > 0 ? rawRadius : GEOFENCE_RADIUS_M;
+    /* Number(null) and Number('') are both 0, which would read as "0 m away,
+       inside the zone". A missing fix must stay unknown, so reject it first. */
+    const missing = distanceM === null || distanceM === undefined || distanceM === '';
+    const d = missing ? NaN : Number(distanceM);
+    if (!Number.isFinite(d) || d < 0) {
+      return { known: false, inside: false, distance: null, radius, text: '📍 Distance to restaurant unavailable' };
+    }
+    const m = Math.round(d);
+    const inside = m <= radius;
+    return {
+      known: true,
+      inside,
+      distance: m,
+      radius,
+      text: inside
+        ? '📍 ' + m + 'm from restaurant — Inside Pickup Zone'
+        : '📍 ' + m + 'm away — Move within ' + radius + 'm',
+    };
+  }
+
+  function pickupGeofence(order, position) {
+    const from = restaurantCoordinates(order);
+    const to = coordinatesOf(position);
+    if (!from || !to) return geofenceStatus(null);
+    return geofenceStatus(haversineMeters(to.lat, to.lng, from.lat, from.lng));
+  }
+
+
+  /* ---- Restaurant wait time, kitchen readiness and handover ----------------- */
+  const WAIT_COMPENSATION_MINUTES = 7;
+  const KITCHEN_RELEASED_STATUSES = ['waiting_for_rider', 'assigned', 'otp_verified'];
+
+  function waitTimeInfo(order, now) {
+    const o = order || {};
+    const startedAt = Date.parse(o.reachedRestaurantAt || o.reachedAt || o.riderReachedAt);
+    if (!Number.isFinite(startedAt)) {
+      return { active: false, ms: null, minutes: 0, seconds: 0, thresholdMinutes: WAIT_COMPENSATION_MINUTES, compensationApplies: false, text: '', note: '' };
+    }
+    const t = now == null ? Date.now() : now;
+    const ms = Math.max(0, t - startedAt);
+    const total = Math.floor(ms / 1000);
+    const minutes = Math.floor(total / 60);
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(total % 60).padStart(2, '0');
+    const threshold = Math.max(1, Math.floor(Number(o.waitCompensationMinutes) || WAIT_COMPENSATION_MINUTES));
+    const compensationApplies = minutes >= threshold;
+    return {
+      active: true,
+      ms,
+      minutes,
+      seconds: total,
+      thresholdMinutes: threshold,
+      compensationApplies,
+      text: '⏱️ Waiting at restaurant: ' + mm + ':' + ss,
+      note: compensationApplies
+        ? 'Wait-time compensation applies after ' + threshold + ' minutes (' + minutes + ' min waited).'
+        : 'Wait-time compensation applies after ' + threshold + ' minutes.',
+    };
+  }
+
+  /* Kitchen prep handshake. "Ready" comes from isFoodReady or a kitchen status
+   * that means the order has been released to the rider. The estimate is only
+   * shown when the backend supplied an expected-ready timestamp. */
+  function kitchenReadyInfo(order, now) {
+    const o = order || {};
+    const released = KITCHEN_RELEASED_STATUSES.includes(String(o.status || ''));
+    if (o.isFoodReady === true || released) {
+      return { ready: true, etaText: '', remainingMs: 0, text: '🛍️ ORDER IS PACKED & READY AT COUNTER!' };
+    }
+    const t = now == null ? Date.now() : now;
+    const eta = Date.parse(o.estimatedReadyAt || o.expectedReadyAt || o.readyAt);
+    if (Number.isFinite(eta)) {
+      const ms = Math.max(0, eta - t);
+      const total = Math.floor(ms / 1000);
+      const mm = String(Math.floor(total / 60)).padStart(2, '0');
+      const ss = String(total % 60).padStart(2, '0');
+      return { ready: false, etaText: mm + ':' + ss, remainingMs: ms, text: '🍳 Kitchen is preparing order (Est. ready: ' + mm + ':' + ss + ')' };
+    }
+    return { ready: false, etaText: '', remainingMs: null, text: '🍳 Kitchen is preparing order' };
+  }
+
+  /* What the rider must check at the counter: the 4-digit pickup ID, any
+   * cutlery request and whether a handover photo is expected. */
+  function pickupHandover(order) {
+    const o = order || {};
+    const code = String(o.pickupCode || o.pickupOtp || o.pickupPin || o.handoverCode || '').trim();
+    const cutlery = o.sendCutlery === true || o.cutlery === true || o.isCutleryRequested === true;
+    return {
+      code,
+      display: code ? '#' + code : '',
+      requiresCode: !!code || o.pickupCodeRequired === true,
+      cutlery,
+      cutleryLabel: cutlery ? 'Send cutlery' : '',
+      photoRequired: o.pickupPhotoRequired === true,
+    };
+  }
+
+  function isValidPickupCode(value) {
+    return OTP_REGEX.test(String(value == null ? '' : value).trim());
+  }
+
+
+  /* ---- Doorstep payment (UPI vs cash on delivery) --------------------------- */
+  function paymentDoorstep(order) {
+    const o = order || {};
+    const method = String(o.paymentMethod || '').trim().toUpperCase();
+    const cod = method === 'COD' || method === 'CASH' || o.isCod === true;
+    const hit = firstNumber(o, ORDER_TOTAL_FIELDS);
+    const amount = hit ? hit.value : (Number(o.codAmount) || 0);
+    return {
+      isCod: cod,
+      method: method || 'UNKNOWN',
+      amount,
+      banner: cod
+        ? '💵 CASH ON DELIVERY: COLLECT ' + rupees(amount, 2) + ' FROM CUSTOMER'
+        : '✅ PREPAID ONLINE — DO NOT COLLECT CASH',
+      confirmationLabel: cod ? 'I have collected ' + rupees(amount, 2) + ' in cash from the customer' : '',
+      requiresCashConfirmation: cod,
+    };
+  }
+
+
+  /* ---- Per-order earning breakdown and settlement --------------------------- */
+  const EARNING_COMPONENT_FIELDS = {
+    base: ['baseDeliveryPay', 'baseDeliveryEarning', 'basePay', 'baseEarning', 'deliveryFeeEarning'],
+    distance: ['distancePay', 'distanceEarning', 'distanceBonus', 'mileagePay'],
+    surge: ['rainSurgeBonus', 'surgeBonus', 'peakSurgeBonus', 'rainBonus', 'surgeEarning'],
+    wait: ['waitTimePay', 'restaurantWaitPay', 'waitingPay', 'waitTimeEarning', 'waitCompensation'],
+  };
+
+  /* Component lines for one order. A component the backend did not send stays
+   * null (rendered as "—"); nothing is filled in from a policy here. */
+  function earningBreakdown(order) {
+    const o = order || {};
+    const pick = fields => { const hit = firstNumber(o, fields); return hit ? hit.value : null; };
+    const tipHit = pickCustomerTip(o);
+    const waitHit = firstNumber(o, ['riderWaitTimeMinutes', 'waitTimeMinutes', 'restaurantWaitMinutes']);
+    const waitMinutes = waitHit ? waitHit.value : null;
+    const totalHit = pickRiderEarning(o);
+    const lines = [
+      { id: 'base', label: 'Base Delivery Pay', value: pick(EARNING_COMPONENT_FIELDS.base), hint: '' },
+      { id: 'distance', label: 'Distance Pay', value: pick(EARNING_COMPONENT_FIELDS.distance), hint: '' },
+      { id: 'surge', label: 'Rain / Surge Bonus', value: pick(EARNING_COMPONENT_FIELDS.surge), hint: '' },
+      { id: 'wait', label: 'Restaurant Wait-Time Pay', value: pick(EARNING_COMPONENT_FIELDS.wait), hint: waitMinutes == null ? '' : waitMinutes + ' mins waited' },
+      { id: 'tip', label: 'Customer Tip (100%)', value: tipHit ? tipHit.value : null, hint: '' },
+    ];
+    const known = lines.filter(l => l.value != null);
+    const sum = known.reduce((s, l) => s + l.value, 0);
+    return {
+      lines,
+      waitMinutes,
+      hasAny: known.length > 0,
+      complete: known.length === lines.length,
+      componentSum: known.length ? sum : null,
+      total: totalHit ? totalHit.value : (known.length === lines.length ? sum : null),
+    };
+  }
+
+  /* Pocketbook: what Eatswada owes the rider, less the COD cash the rider is
+   * still holding for the customer. */
+  function settlementSummary(input) {
+    const i = input || {};
+    const totalEarnings = Math.max(0, Number(i.totalEarnings) || 0);
+    const cashInHand = Number(i.cashInHand) || 0;
+    const net = totalEarnings - cashInHand;
+    const positive = net >= 0;
+    return {
+      totalEarnings,
+      cashInHand,
+      net,
+      tone: positive ? 'ok' : 'warn',
+      label: positive
+        ? 'Net Payout Due to You: +' + rupees(Math.abs(net))
+        : 'Net COD Cash Due to Admin: -' + rupees(Math.abs(net)),
+      payouts: Array.isArray(i.payouts) ? i.payouts : [],
+      deposits: Array.isArray(i.deposits) ? i.deposits : [],
+    };
+  }
+
+  /* A payout/deposit row is only shown when it carries a real reference or
+   * amount; the app never prints an empty ledger line. */
+  function ledgerRows(entries) {
+    return (Array.isArray(entries) ? entries : [])
+      .filter(e => e && (firstNumber(e, ['amount', 'value']) || e.utr || e.reference || e.referenceId || e.date || e.createdAt))
+      .map(e => {
+        const hit = firstNumber(e, ['amount', 'value']);
+        return {
+          amount: hit ? hit.value : null,
+          amountText: hit ? rupees(hit.value) : '—',
+          reference: String(e.utr || e.reference || e.referenceId || '').trim(),
+          date: String(e.date || e.createdAt || e.paidAt || e.depositedAt || '').trim(),
+          status: String(e.status || '').trim(),
+        };
+      });
+  }
+
+
   /* ---- Duplicate-submission guard -------------------------------------------
    * One in-flight request per key (an order id). The dashboard renders the same
    * action button in the focus card and in the order list, so a per-button
@@ -392,6 +739,7 @@
     APPLICATION_STATUSES,
     ACTIVE_RIDER_STATUSES,
     PICKUP_ALLOWED_ORDER_STATUSES,
+    KITCHEN_RELEASED_STATUSES,
     PHONE_REGEX,
     EMAIL_REGEX,
     OTP_REGEX,
@@ -399,6 +747,11 @@
     RIDER_EARNING_FIELDS,
     ORDER_TOTAL_FIELDS,
     OFFER_POLICY,
+    REJECTION_LIMIT,
+    REJECTION_COOLDOWN_MINUTES,
+    COD_CASH_LIMIT_DEFAULT,
+    GEOFENCE_RADIUS_M,
+    WAIT_COMPENSATION_MINUTES,
     normalizePhone,
     normalizeVehicleType,
     normalizeEmail,
@@ -424,6 +777,25 @@
     offerEarnings,
     weeklyIncentive,
     earningsOrderCount,
+    rupees,
+    rainSurgeInfo,
+    rejectionWarning,
+    cooldownRemaining,
+    rejectionTracker,
+    codCashStatus,
+    coordinatesOf,
+    restaurantCoordinates,
+    haversineMeters,
+    geofenceStatus,
+    pickupGeofence,
+    waitTimeInfo,
+    kitchenReadyInfo,
+    pickupHandover,
+    isValidPickupCode,
+    paymentDoorstep,
+    earningBreakdown,
+    settlementSummary,
+    ledgerRows,
     createInFlightGuard,
     nextDeliveryStep,
     homeAlerts,

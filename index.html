@@ -36,8 +36,9 @@ img{max-width:100%}
       <div class="logo" id="brandLogo" aria-hidden="true"><img id="brandLogoImg" src="icon.png" alt="" width="36" height="36" decoding="async"></div>
       <span class="brandName">Eatswada</span>
     </div>
-    <button class="online" id="onlineBtn" type="button" aria-live="polite"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
+    <button class="online" id="onlineBtn" type="button" role="switch" aria-checked="false" aria-label="Go online to receive deliveries" aria-live="polite"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
   </div>
+  <div class="surgePill hidden" id="surgePill" role="status"></div>
 </header>
 
 <div class="assignBar" id="assignBar" role="status">
@@ -71,9 +72,15 @@ img{max-width:100%}
       <span id="locationBtnText">Turn on GPS</span>
     </button>
   </div>
+  <p class="locationHint" id="locationHint">Eatswada uses your location while you are online to match you with nearby delivery orders.</p>
+
+  <div class="cooldownBanner hidden" id="cooldownBanner" role="status" aria-live="polite"></div>
+  <div class="rejectionWarn hidden" id="rejectionWarn" role="status"></div>
 
   <button class="btn primary goBtn" id="goOnlineBtn" type="button" aria-pressed="false">Go online</button>
   <div class="homeAlerts" id="homeAlerts" aria-live="polite"></div>
+
+  <div class="cashCard hidden" id="cashCard" aria-live="polite"></div>
 
   <div id="focusWrap"></div>
 
@@ -139,6 +146,7 @@ img{max-width:100%}
     <h1 id="earnBig">₹0</h1>
     <div class="earnSub" id="earnSub">0 deliveries completed</div>
   </div>
+  <div class="cashCard hidden" id="cashCardEarnings" aria-live="polite"></div>
   <section class="section">
     <div class="sectionHead"><h2>Summary</h2><span class="count">All periods</span></div>
     <div class="card">
@@ -177,6 +185,28 @@ img{max-width:100%}
       <div class="milestoneLabels"><span>₹50</span><span>₹100 total</span><span>₹150 total</span></div>
       <p class="incentiveMessage" id="incentiveMessage">Complete 10 deliveries this week to unlock ₹50.</p>
       <small class="incentiveReset">Resets every Monday at 12:00 AM IST.</small>
+    </div>
+  </section>
+  <section class="section">
+    <div class="sectionHead"><h2>Order-by-order earnings</h2><span class="count" id="perOrderCount">0</span></div>
+    <div class="card">
+      <div id="perOrderRows" style="padding:2px 16px 8px"><div class="loading short"></div></div>
+      <div style="padding:0 16px 16px"><p class="rowNote" id="perOrderNote"></p></div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="sectionHead"><h2>Settlement &amp; COD reconciliation</h2><span class="count" id="settlementTone">Pocketbook</span></div>
+    <div class="card">
+      <div class="rows" style="padding:4px 16px 8px" id="settlementRows"><div class="loading short"></div></div>
+      <div style="padding:0 16px 14px"><div class="netBanner" id="settlementNet">—</div></div>
+      <div style="padding:0 16px 16px"><p class="rowNote" id="settlementNote"></p></div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="sectionHead"><h2>Payouts &amp; cash deposits</h2><span class="count">Admin recorded</span></div>
+    <div class="card">
+      <div class="rows" style="padding:4px 16px 14px" id="ledgerRows"><div class="loading short"></div></div>
+      <div style="padding:0 16px 16px"><p class="rowNote" id="ledgerNote"></p></div>
     </div>
   </section>
   <section class="section">
@@ -303,9 +333,23 @@ img{max-width:100%}
   <div class="sheet">
     <h3>Confirm delivery</h3>
     <p>Ask the customer for the 4-digit delivery PIN. The order cannot be completed without it.</p>
+    <div class="payBanner" id="otpPayBanner" hidden></div>
     <div class="otp"><input inputmode="numeric" maxlength="1" id="o0" aria-label="PIN digit 1"><input inputmode="numeric" maxlength="1" id="o1" aria-label="PIN digit 2"><input inputmode="numeric" maxlength="1" id="o2" aria-label="PIN digit 3"><input inputmode="numeric" maxlength="1" id="o3" aria-label="PIN digit 4"></div>
+    <label class="codConfirm" id="codConfirmWrap" hidden><input type="checkbox" id="codConfirm"><span id="codConfirmLabel"></span></label>
     <div id="otpMsg" style="min-height:18px;text-align:center;font-size:13px;margin-bottom:10px"></div>
     <div class="sheetActions"><button class="btn" id="closeOtp" type="button">Cancel</button><button class="btn primary" id="verifyOtp" type="button">Verify PIN</button></div>
+  </div>
+</div>
+
+<div class="modal" id="pickupModal">
+  <div class="sheet">
+    <h3>Confirm pickup at counter</h3>
+    <p>Check the bag against the counter handover details before you leave the restaurant.</p>
+    <div id="pickupSummary"></div>
+    <div class="field" id="pickupCodeField" hidden><label for="pickupCodeInput">4-digit pickup code from the restaurant</label><input id="pickupCodeInput" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234"></div>
+    <div class="field"><label for="pickupPhotoInput">Package / bill photo (optional)</label><input id="pickupPhotoInput" type="file" accept="image/jpeg,image/png,image/webp"></div>
+    <div id="pickupMsg" style="min-height:16px;color:var(--danger);font-size:13px;margin-top:8px"></div>
+    <div class="sheetActions"><button class="btn" id="closePickup" type="button">Cancel</button><button class="btn primary" id="confirmPickup" type="button">Confirm pickup</button></div>
   </div>
 </div>
 
@@ -375,7 +419,7 @@ if(!localStorage.getItem('riderToken')){location.href=LOGIN;return}
 const $=id=>document.getElementById(id);
 /* Brand mark: icon.png, with an inline vector fallback so the header never shows a broken image or a stray letter. */
 (function brandLogo(){const img=$('brandLogoImg'),box=$('brandLogo');if(!img||!box)return;const fallback=()=>{box.innerHTML='<svg viewBox="0 0 36 36" fill="none" stroke="#690D27" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14h17l-1.4 14H10.9L9.5 14z"/><path d="M13.5 14v-1.5a4.5 4.5 0 0 1 9 0V14"/></svg>'};img.addEventListener('error',fallback,{once:true});if(img.complete&&img.naturalWidth===0)fallback()})();
-let profile=null,orders=[],history=[],earnings=null,page=1,historyPage=1,pages=1,historyPages=1,filter='all',otpOrderId=null,issueOrderId=null,selectedIssue='',gpsWatch=null,riderPos=null,loading=false,historyLoading=false,earningsLoading=false,refreshTimer=null,ordersRequestSeq=0,period='today',onlineSince=null;
+let profile=null,orders=[],history=[],earnings=null,page=1,historyPage=1,pages=1,historyPages=1,filter='all',otpOrderId=null,issueOrderId=null,pickupOrderId=null,selectedIssue='',gpsWatch=null,riderPos=null,loading=false,historyLoading=false,earningsLoading=false,refreshTimer=null,ordersRequestSeq=0,period='today',onlineSince=null,cashState=null,payoutState=null,cooldownUntil=null,rejectionState=null,surgeState=null;
 /* Duplicate-submission guard shared by every status action (focus card, order
    list and offer sheet render the same action for the same order). */
 const guard=RL&&RL.createInFlightGuard?RL.createInFlightGuard():(()=>{const a=new Set();return{isBusy:k=>a.has(String(k)),async run(k,f){k=String(k);if(a.has(k))return{skipped:true};a.add(k);try{return{skipped:false,value:await f()}}finally{a.delete(k)}}}})();
@@ -432,7 +476,7 @@ async function api(path,opts={},retries=2){
   catch(netErr){if(method==='GET'&&retries>0){await new Promise(r=>setTimeout(r,900));return api(path,opts,retries-1)}throw Error('No connection. Check your network and try again.')}
   let data={};try{data=await res.json()}catch{}
   if(res.status===401){localStorage.removeItem('riderToken');localStorage.removeItem('riderUser');location.href=LOGIN;throw Error('Session expired.')}
-  if(!res.ok||data.success===false)throw Error(data.message||'Request failed');
+  if(!res.ok||data.success===false){const err=Error(data.message||'Request failed');err.status=res.status;err.data=data;throw err}
   return data;
 }
 
@@ -441,7 +485,7 @@ function restaurant(o){const r=o.restaurant&&typeof o.restaurant==='object'?o.re
 function customer(o){const c=o.customer&&typeof o.customer==='object'?o.customer:(o.user&&typeof o.user==='object'?o.user:{});const a=o.deliveryAddress||{};return{name:o.customerName||c.name||'Customer',phone:o.customerPhone||c.phone||'',address:addr(a)}}
 function normalize(o){const r=o.restaurant&&typeof o.restaurant==='object'?o.restaurant:{};return{...o,id:o._id,shortId:'#'+String(o._id||'').slice(-6).toUpperCase(),publicOrderId:o.publicOrderId||o.orderNumber||'',publicShipmentId:o.publicShipmentId||o.shipmentId||'',restaurantName:o.restaurantName||r.name||'Restaurant',restaurantPhone:o.restaurantPhone||r.phone||r.contactNumber||''}}
 function statusLabel(s){return({assigned:'New assignment',accepted:'Accepted',reached_restaurant:'At restaurant',picked_up:'Picked up',out_for_delivery:'On the way',delivered:'Delivered',cancelled:'Cancelled'}[s]||s||'Unknown')}
-function actionFor(o){if(pickupGate(o).relevant&&!pickupGate(o).allowed)return null;return({assigned:{type:'accept',label:'Accept delivery'},accepted:{type:'status',next:'reached_restaurant',label:'Arrived at restaurant'},reached_restaurant:{type:'status',next:'picked_up',label:'Picked up'},picked_up:{type:'status',next:'out_for_delivery',label:'Start delivery'},out_for_delivery:{type:'otp',label:'Verify PIN & deliver'}}[o.riderStatus]||null)}
+function actionFor(o){if(pickupGate(o).relevant&&!pickupGate(o).allowed)return null;return({assigned:{type:'accept',label:'Accept delivery'},accepted:{type:'status',next:'reached_restaurant',label:'Arrived at restaurant'},reached_restaurant:{type:'pickup',next:'picked_up',label:'Picked up'},picked_up:{type:'status',next:'out_for_delivery',label:'Start delivery'},out_for_delivery:{type:'otp',label:'Verify PIN & deliver'}}[o.riderStatus]||null)}
 function kitchenBadge(o){const k=String(o.status||'');if(!k||k==='cancelled')return k==='cancelled'?'<span class="badge red">Order cancelled</span>':'';const tone=['waiting_for_rider','assigned','otp_verified'].includes(k)?'amber':'grey';return `<span class="badge ${tone}">🍳 ${esc(kitchenLabel(k))}</span>`}
 function orderRef(o){return o.publicOrderId||o.shortId}
 function isCOD(o){return String(o.paymentMethod||'').toLowerCase()==='cod'}
@@ -450,6 +494,16 @@ function liveDistance(o){const d=deliveryCoords(o);return d&&riderPos?hav(riderP
 function restaurantDistance(o){const r=restaurant(o);return r.location&&riderPos?hav(riderPos.lat,riderPos.lng,r.location.lat,r.location.lng):null}
 function tripDistance(o){const r=restaurant(o).location,d=deliveryCoords(o);return r&&d?hav(r.lat,r.lng,d.lat,d.lng):null}
 function etaRange(o){const t=tripDistance(o);if(t==null)return null;const lo=Math.max(5,Math.round(t/18*60)+8),hi=Math.max(lo+3,Math.round(t/14*60)+12);return{lo,hi}}
+
+/* ---- Production upgrade rules (delegate to rider-logic.js) ------------------
+ * These wrappers keep the dashboard usable if rider-logic.js is stale (cached
+ * webview bundle) while the shared, tested implementation stays authoritative. */
+const geofenceOf=o=>RL?RL.pickupGeofence(o,riderPos):(()=>{const from=RL?RL.restaurantCoordinates(o):null;return from&&riderPos?{known:true,inside:hav(riderPos.lat,riderPos.lng,from.lat,from.lng)*1000<=200,distance:Math.round(hav(riderPos.lat,riderPos.lng,from.lat,from.lng)*1000),radius:200,text:''}:{known:false,inside:false,distance:null,radius:200,text:''}})();
+const waitTimeOf=(o,now)=>RL?RL.waitTimeInfo(o,now):{active:false,text:'',note:'',compensationApplies:false,minutes:0};
+const kitchenReadyOf=(o,now)=>RL?RL.kitchenReadyInfo(o,now):{ready:o?.isFoodReady===true,text:'',etaText:''};
+const handoverOf=o=>RL?RL.pickupHandover(o):{code:'',display:'',requiresCode:false,cutlery:false,cutleryLabel:'',photoRequired:false};
+const paymentOf=o=>RL?RL.paymentDoorstep(o):{isCod:isCOD(o),amount:num(o?.total)||0,banner:'',confirmationLabel:'',requiresCashConfirmation:isCOD(o)};
+const breakdownOf=o=>RL?RL.earningBreakdown(o):null;
 
 
 /* ------------------------------------------------------------------ earnings
@@ -475,8 +529,12 @@ function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clea
 function notify(title,body){try{if(Notification.permission==='granted')new Notification(title,{body,tag:'eatswada-rider',renotify:true})}catch{}}
 const Alarm=(()=>{let ctx=null,timer=null,active=false;
   function unlock(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!ctx&&AC)ctx=new AC();if(ctx?.state==='suspended')ctx.resume()}catch{}}
-  function pulse(){if(ctx){const n=ctx.currentTime;[[880,0],[1245,.18]].forEach(([f,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;o.connect(g);g.connect(ctx.destination);const t=n+d;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.17);o.start(t);o.stop(t+.2)})}try{navigator.vibrate?.([300,120,300])}catch{}}
-  return{unlock,start(n){unlock();$('assignText').textContent=n>1?`${n} new deliveries waiting`:'New delivery waiting';$('assignBar').classList.add('show');if(active)return;active=true;pulse();timer=setInterval(pulse,1700)},stop(){active=false;clearInterval(timer);timer=null;try{navigator.vibrate?.(0)}catch{};$('assignBar').classList.remove('show')}}})();
+  function tone(list){if(!ctx)return;const n=ctx.currentTime;list.forEach(([f,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;o.connect(g);g.connect(ctx.destination);const t=n+d;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.17);o.start(t);o.stop(t+.2)})}
+  function pulse(){tone([[880,0],[1245,.18]]);try{navigator.vibrate?.([300,120,300])}catch{}}
+  /* A distinct, higher chime for "order ready" so it cannot be confused with a
+     new-assignment alert. */
+  function chime(){unlock();tone([[1046,0],[1318,.16],[1568,.32]]);try{navigator.vibrate?.([180,90,180])}catch{}}
+  return{unlock,chime,start(n){unlock();$('assignText').textContent=n>1?`${n} new deliveries waiting`:'New delivery waiting';$('assignBar').classList.add('show');if(active)return;active=true;pulse();timer=setInterval(pulse,1700)},stop(){active=false;clearInterval(timer);timer=null;try{navigator.vibrate?.(0)}catch{};$('assignBar').classList.remove('show')}}})();
 
 /* Reusable empty state with an icon, used for every list on the app. */
 const ICONS={
@@ -495,7 +553,7 @@ async function unregisterDeviceToken(){const t=getFcmToken();if(!t)return;try{aw
 
 async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.vehicleNumber].filter(Boolean).join(' • ')||'Vehicle not set';$('riderZone').textContent=r.riderDetails?.deliveryZone||'Service area not set';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false)}
 
-function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on);$('onlineBtn').setAttribute('aria-pressed',on?'true':'false');const hs=$('homeStatus');if(hs){hs.classList.toggle('on',on);$('homeStatusTitle').textContent=on?"You're online":"You're offline"}if(on&&!onlineSince){const saved=Number(localStorage.getItem(LS_ONLINE_SINCE)||0);onlineSince=saved||Date.now();try{localStorage.setItem(LS_ONLINE_SINCE,String(onlineSince))}catch{}}if(!on){onlineSince=null;try{localStorage.removeItem(LS_ONLINE_SINCE)}catch{}}renderOnlineTime();syncGoBtn(on);renderAlerts()}
+function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on);$('onlineBtn').setAttribute('aria-pressed',on?'true':'false');$('onlineBtn').setAttribute('aria-checked',on?'true':'false');$('onlineBtn').setAttribute('aria-label',on?'Go offline to stop receiving deliveries':'Go online to receive deliveries');const hs=$('homeStatus');if(hs){hs.classList.toggle('on',on);$('homeStatusTitle').textContent=on?"You're online":"You're offline"}if(on&&!onlineSince){const saved=Number(localStorage.getItem(LS_ONLINE_SINCE)||0);onlineSince=saved||Date.now();try{localStorage.setItem(LS_ONLINE_SINCE,String(onlineSince))}catch{}}if(!on){onlineSince=null;try{localStorage.removeItem(LS_ONLINE_SINCE)}catch{}}renderOnlineTime();syncGoBtn(on);renderAlerts();renderShiftBanners()}
 async function toggleOnline(on){const b=$('onlineBtn');if(b.getAttribute('aria-busy')==='true')return;b.setAttribute('aria-busy','true');if(on){Alarm.unlock();try{if(Notification.permission==='default')await Notification.requestPermission()}catch{}}try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});setOnlineUI(on);toast(on?'You are online':'You are offline');afterOnlineChange(on)}catch(e){toast(e.message)}finally{b.removeAttribute('aria-busy')}}
 function renderOnlineTime(){const wrap=$('heroOnlineWrap');if(!wrap)return;const saved=onlineSince||Number(localStorage.getItem(LS_ONLINE_SINCE)||0);if(!saved){wrap.hidden=true;return}wrap.hidden=false;$('heroOnlineValue').textContent=durText(Date.now()-saved)}
 setInterval(renderOnlineTime,60000);
@@ -503,7 +561,7 @@ setInterval(renderOnlineTime,60000);
 /* ---- GPS ------------------------------------------------------------------ */
 function applyFix(p){const lat=p.coords.latitude,lng=p.coords.longitude;const v=RL?RL.validateCoordinates(lat,lng):{valid:Number.isFinite(lat)&&Number.isFinite(lng)};if(!v.valid){toast(v.message||'The device reported an invalid location.');return false}riderPos={lat,lng,accuracy:p.coords.accuracy,at:Date.now()};return true}
 function gpsMessage(code){if(code===1)return 'Location permission was denied. Enable it in Android settings to go online.';if(code===2)return 'GPS is turned off on this phone. Turn on location services.';if(code===3)return 'Could not get a GPS fix in time. Move to an open area and retry.';return 'Location is unavailable.'}
-function updateGpsUI(){const on=!!riderPos;$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`Location active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'Location off';const btn=$('locationBtn');btn.classList.toggle('off',!on);$('locationBtnText').textContent=on?'GPS on':'Turn on GPS';btn.setAttribute('aria-pressed',on?'true':'false');renderAlerts()}
+function updateGpsUI(){const on=!!riderPos;$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`Location active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'Location off';const btn=$('locationBtn');btn.classList.toggle('off',!on);$('locationBtnText').textContent=on?'GPS on':'Turn on GPS';btn.setAttribute('aria-pressed',on?'true':'false');const hint=$('locationHint');if(hint)hint.hidden=on;renderAlerts()}
 function stopGPS(){if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null}riderPos=null;stopBackground();updateGpsUI();render()}
 async function startGPS(){
  if(!navigator.geolocation){toast('GPS is not supported on this phone.');return}
@@ -521,7 +579,7 @@ let lastLoc=0,locDirty=false;
 async function sendLocation(force=false){if(!riderPos)return;const now=Date.now();if(!force&&now-lastLoc<15000)return;lastLoc=now;try{await api('/api/riders/location',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:riderPos.lat,lng:riderPos.lng})});locDirty=false}catch{locDirty=true}}
 /* The Capacitor background-location bundle dispatches these window events; the
    live WebView forwards fixes with the existing PUT /api/riders/location route. */
-window.addEventListener('eatswada:background-location',e=>{const d=e.detail||{};const v=RL?RL.validateCoordinates(d.lat,d.lng):{valid:Number.isFinite(d.lat)&&Number.isFinite(d.lng)};if(!v.valid)return;riderPos={lat:Number(d.lat),lng:Number(d.lng),accuracy:d.accuracy||null,at:d.time||Date.now()};updateGpsUI();sendLocation()});
+window.addEventListener('eatswada:background-location',e=>{const d=e.detail||{};const v=RL?RL.validateCoordinates(d.lat,d.lng):{valid:Number.isFinite(d.lat)&&Number.isFinite(d.lng)};if(!v.valid)return;riderPos={lat:Number(d.lat),lng:Number(d.lng),accuracy:d.accuracy||null,at:d.time||Date.now()};updateGpsUI();tickPanels(Date.now());sendLocation()});
 window.addEventListener('eatswada:background-location-error',e=>{bgState='off';renderAlerts();toast(e.detail?.message||'Background location failed')});
 window.addEventListener('eatswada:background-location-state',e=>{bgState=e.detail?.running?'running':'off';renderAlerts();if(!e.detail?.running&&!riderPos)updateGpsUI()});
 
@@ -577,20 +635,137 @@ async function refreshNotifState(){
  }catch{}
  renderAlerts();
 }
-$('onlineBtn').onclick=()=>toggleOnline(!$('onlineBtn').classList.contains('on'));
-$('goOnlineBtn').onclick=()=>toggleOnline(!$('onlineBtn').classList.contains('on'));
+
+/* ---- shift banners: rain surge, rejection warning, cooldown ----------------- */
+function activeOrder(){return orders.filter(isActive)[0]||null}
+function refreshShiftState(){
+ const details=(profile&&profile.riderDetails)||{};
+ rejectionState=RL&&RL.rejectionWarning?RL.rejectionWarning(details):null;
+ cooldownUntil=details.cooldownUntil||null;
+ surgeState=RL&&RL.rainSurgeInfo?RL.rainSurgeInfo(profile,activeOrder()||{}):null;
+}
+function renderShiftBanners(){
+ refreshShiftState();
+ const pill=$('surgePill');
+ if(pill){const show=!!(surgeState&&surgeState.active);pill.classList.toggle('hidden',!show);if(show)pill.textContent=surgeState.text}
+ const warn=$('rejectionWarn');
+ if(warn){const show=!!(rejectionState&&rejectionState.visible);warn.classList.toggle('hidden',!show);if(show)warn.textContent=rejectionState.message}
+ const cd=$('cooldownBanner');
+ if(cd){const c=RL&&RL.cooldownRemaining?RL.cooldownRemaining(cooldownUntil):null;const show=!!(c&&c.active);cd.classList.toggle('hidden',!show);if(show)cd.textContent=c.text}
+}
+setInterval(renderShiftBanners,1000);
+
+/* ---- COD cash ceiling ------------------------------------------------------- */
+/* GET /api/riders/cash is optional (see BACKEND-NEEDED.md); when the backend has
+ * not shipped it yet the card falls back to the COD total of today's completed
+ * orders that this device can see, and says so. */
+async function loadCash(){
+ try{
+  const d=await api('/api/riders/cash');
+  cashState={...d.data,source:'server'};
+ }catch{
+  const day=new Date().toDateString();
+  const cod=history.filter(o=>o.status==='delivered'&&isCOD(o)).filter(o=>new Date(o.updatedAt||o.createdAt||0).toDateString()===day).reduce((s,o)=>s+(num(o.total)||0),0);
+  cashState={cashInHand:cod,source:'local'};
+ }
+ try{const p=await api('/api/riders/payouts');payoutState=p.data}catch{payoutState=null}
+ renderCashCard();renderSettlement();
+}
+function codCash(){
+ const details=(profile&&profile.riderDetails)||{};
+ const cash=cashState&&hasNum(cashState.cashInHand)?num(cashState.cashInHand):0;
+ const limit=cashState&&hasNum(cashState.codCashLimit)?num(cashState.codCashLimit):(hasNum(details.codCashLimit)?num(details.codCashLimit):null);
+ return RL&&RL.codCashStatus?RL.codCashStatus(cash,limit):null;
+}
+function renderCashCard(){
+ const s=codCash();
+ const html=s?`<div class="cashTop"><h2>COD Cash in Hand</h2><b>${money(s.cash)} <span>/ ${money(s.limit)}</span></b></div>
+  <div class="cashTrack" role="progressbar" aria-label="COD cash in hand against limit" aria-valuemin="0" aria-valuemax="${s.limit}" aria-valuenow="${s.cash}"><div class="cashFill${s.reached?' full':''}" style="width:${s.pct}%"></div></div>
+  ${s.reached?`<div class="cashWarn" role="status">${esc(s.warning)}</div>`:`<div class="cashHint">Deposit cash with Admin before you reach ${money(s.limit)} to keep receiving COD orders.</div>`}`:'';
+ /* Home shows the card inline; the Earnings tab carries a second copy so the
+    pocketbook view shows the same ceiling warning. */
+ [['cashCard',false],['cashCardEarnings',true]].forEach(([id,isEarnings])=>{
+  const el=$(id);if(!el)return;
+  const show=!!s&&(!isEarnings||!$('earningsView').classList.contains('hidden'));
+  el.innerHTML=html;el.classList.toggle('hidden',!show);
+ });
+}
+
+/* ---- Settlement & COD reconciliation (Earnings tab) ------------------------- */
+/* Order-by-order breakdown for the selected period, expandable per order. */
+function renderPerOrderEarnings(){
+ const el=$('perOrderRows');if(!el)return;
+ const rows=history.filter(o=>o.status==='delivered'&&inPeriod(o.updatedAt||o.createdAt));
+ $('perOrderCount').textContent=rows.length;
+ if(!rows.length){el.innerHTML='<div class="row"><span class="rowLabel">No completed orders in this period</span><b>—</b></div>';$('perOrderNote').textContent='Completed orders appear here once the backend records them.';return}
+ el.innerHTML=rows.slice(0,20).map(o=>`<div class="perOrder"><div class="perOrderHead"><span>${esc(orderRef(o))} · ${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span><b>${(()=>{const e=pickRiderEarning(o);return e?money(e.value):'—'})()}</b></div>${earningBreakdownMarkup(o)}</div>`).join('');
+ $('perOrderNote').textContent=rows.length>20?`Showing the 20 most recent of ${rows.length} completed orders in this period.`:'Each order shows the components Eatswada recorded. Missing components are shown as “—”, never estimated.';
+}
+
+function renderSettlement(){
+ const rowsEl=$('settlementRows');if(!rowsEl)return;
+ const total=num(earnings?.totalEarnings)??num(earnings?.today?.earnings)??0;
+ const s=codCash()||{cash:0,limit:0};
+ const payouts=payoutState&&Array.isArray(payoutState.payouts)?payoutState.payouts:[];
+ const deposits=payoutState&&Array.isArray(payoutState.deposits)?payoutState.deposits:[];
+ const summary=RL&&RL.settlementSummary?RL.settlementSummary({totalEarnings:total,cashInHand:s.cash,payouts,deposits}):{totalEarnings:total,cashInHand:s.cash,net:total-s.cash,tone:'ok',label:'—'};
+ rowsEl.innerHTML=[
+  `<div class="row"><span class="rowLabel"><i class="brand"></i>Total Earnings</span><b>${money(summary.totalEarnings)}</b></div>`,
+  `<div class="row"><span class="rowLabel"><i class="warn"></i>COD Cash Held</span><b>${money(summary.cashInHand)}</b></div>`,
+ ].join('');
+ const net=$('settlementNet');
+ if(net){net.textContent=summary.label;net.classList.toggle('ok',summary.tone==='ok');net.classList.toggle('warn',summary.tone==='warn')}
+ $('settlementTone').textContent=summary.tone==='ok'?'Payout due':'Cash due';
+ $('settlementNote').textContent='Net Balance = Total Earnings − COD Cash Held. Payouts and cash deposits are recorded by Eatswada Admin.';
+
+ const ledger=$('ledgerRows');
+ const payoutRows=RL&&RL.ledgerRows?RL.ledgerRows(payouts):[];
+ const depositRows=RL&&RL.ledgerRows?RL.ledgerRows(deposits):[];
+ let html='';
+ if(payoutRows.length){html+='<div class="ledgerHead">Payouts to your bank / UPI</div>'+payoutRows.map(r=>`<div class="row"><span class="rowLabel">${esc(r.date?new Date(r.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'—')}${r.reference?` · UTR ${esc(r.reference)}`:''}${r.status?` · ${esc(r.status)}`:''}</span><b>${esc(r.amountText)}</b></div>`).join('')}
+ if(depositRows.length){html+='<div class="ledgerHead">COD cash deposits recorded by Admin</div>'+depositRows.map(r=>`<div class="row"><span class="rowLabel">${esc(r.date?new Date(r.date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'—')}${r.reference?` · Ref ${esc(r.reference)}`:''}${r.status?` · ${esc(r.status)}`:''}</span><b>${esc(r.amountText)}</b></div>`).join('')}
+ ledger.innerHTML=html||'<div class="row"><span class="rowLabel">No payouts or deposits recorded yet</span><b>—</b></div>';
+ $('ledgerNote').textContent=(payoutRows.length||depositRows.length)?'Ledger entries come from the Eatswada payouts API.':'Payout history needs the backend update (see BACKEND-NEEDED.md).';
+}
+/* The header switch reads the server-confirmed state (aria-pressed) instead of
+   blindly toggling a local flag, so a failed or out-of-band change is corrected. */
+$('onlineBtn').onclick=()=>toggleOnline($('onlineBtn').getAttribute('aria-pressed')!=='true');
+$('goOnlineBtn').onclick=()=>toggleOnline($('onlineBtn').getAttribute('aria-pressed')!=='true');
 setInterval(renderAlerts,30000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshNotifState()});
 
 /* ---- push ----------------------------------------------------------------- */
-function initPush(){try{if(isNativeApp())return;if(!('serviceWorker'in navigator)||!('Notification'in window)||typeof firebase==='undefined')return;if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./'}).then(reg=>{if(Notification.permission==='default')return Notification.requestPermission().then(()=>reg);return reg}).then(async reg=>{if(Notification.permission!=='granted')return;const m=firebase.messaging(),t=await m.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});if(t){setFcmToken(t);const rr=await fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token:t})});if(!rr.ok)throw new Error('Rider notification token registration failed.')}m.onMessage(p=>{const d=p?.data||{};if(d.type==='rider_assignment'){Alarm.start(1);notify('New delivery assigned',d.body||'A new delivery is waiting.');loadOrders(true)}else if(d.type==='delivery_issue'||d.orderId){loadOrders(true)}})}).catch(()=>{})}catch{}}
+/* Web push setup is idempotent: several entry points (first load, first tap,
+ * returning online) can call it, but the service worker is registered once and
+ * the FCM message handler is attached once. */
+let __pushInit=null,__swReg=null,__pushBound=false;
+function initPush(){
+ if(__pushInit)return __pushInit;
+ __pushInit=(async()=>{try{
+  if(isNativeApp())return;
+  if(!('serviceWorker'in navigator)||!('Notification'in window)||typeof firebase==='undefined')return;
+  if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+  __swReg=__swReg||navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./'});
+  const reg=await __swReg;
+  if(Notification.permission!=='granted')return;
+  const m=firebase.messaging(),t=await m.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
+  if(t){setFcmToken(t);const rr=await fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token:t})});if(!rr.ok)throw new Error('Rider notification token registration failed.')}
+  if(!__pushBound){__pushBound=true;m.onMessage(p=>{const d=p?.data||{};if(d.type==='rider_assignment'){Alarm.start(1);notify('New delivery assigned',d.body||'A new delivery is waiting.');loadOrders(true)}else if(d.type==='order_ready'||d.type==='ORDER_READY'){orderReadyAlert(d);loadOrders(true)}else if(d.type==='delivery_issue'||d.orderId){loadOrders(true)}})}
+ }catch{}})();
+ return __pushInit;
+}
+/* Kitchen handshake: a chime plus an on-screen alert when the restaurant packs
+   the order. The sound only plays after a rider gesture has unlocked audio. */
+function orderReadyAlert(data){const label=data&&(data.orderId||data.body)?(data.body||'The restaurant has packed your order.'):'The restaurant has packed your order.';Alarm.chime();notify('Order ready for pickup',label);toast('🛍️ '+label)}
 function highlightOrder(id){if(!id)return;showView('homeView');filter='all';document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render();setTimeout(()=>{const e=document.getElementById('order-'+id);if(e){e.scrollIntoView({behavior:'smooth',block:'center'});e.classList.add('flash');setTimeout(()=>e.classList.remove('flash'),2200)}},50)}
 if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='order-notification-click')highlightOrder(e.data.orderId)});
 window.addEventListener('eatswada:push-permission',e=>{notifState=e.detail?.state||'unknown';renderAlerts()});
-window.addEventListener('eatswada:push-received',e=>{const d=e.detail?.data||{};if(d.type==='rider_assignment'||d.orderId)loadOrders(true)});
+window.addEventListener('eatswada:push-received',e=>{const d=e.detail?.data||{};if(d.type==='rider_assignment'){loadOrders(true)}else if(d.type==='order_ready'||d.type==='ORDER_READY'){orderReadyAlert(d);loadOrders(true)}else if(d.orderId){loadOrders(true)}});
 window.addEventListener('eatswada:push-opened',e=>{const d=e.detail||{};if(d.orderId)highlightOrder(d.orderId);else refresh(false)});
 $('assignBarBtn').onclick=()=>{const o=orders.find(x=>x.riderStatus==='assigned');if(o)highlightOrder(o.id)};
-document.addEventListener('pointerdown',()=>{Alarm.unlock();initPush();try{if(Notification.permission==='default')Notification.requestPermission()}catch{}},{once:true});
+/* The first tap only unlocks audio and starts push setup. Asking for the OS
+ * notification permission is left to a deliberate rider action (going online). */
+document.addEventListener('pointerdown',()=>{Alarm.unlock();initPush()},{once:true});
 
 let firstLoad=true,lastAssigned=new Set();
 function markAssignmentNotified(id){try{const k='eatswada_rider_notified_assignments';const a=JSON.parse(localStorage.getItem(k)||'[]');if(!a.includes(String(id))){a.push(String(id));localStorage.setItem(k,JSON.stringify(a.slice(-200)));return false}return true}catch{return false}}
@@ -600,6 +775,44 @@ function checkAssignments(){const assigned=orders.filter(o=>o.riderStatus==='ass
   firstLoad=false}
 function assignmentSeconds(o){if(!o.riderAssignedAt)return null;return Math.max(0,60-Math.floor((Date.now()-new Date(o.riderAssignedAt).getTime())/1000))}
 setInterval(()=>{orders.forEach(o=>{if(o.riderStatus==='assigned'){const e=document.getElementById('cd-'+o.id);if(e){const s=assignmentSeconds(o);e.textContent=s==null?'New':s+'s left'}}})},1000);
+
+/* Live ticker for the upgrade panels. Recomputing only the affected node keeps
+   the wait-time seconds, kitchen estimate and 200 m distance moving without a
+   full re-render (which would fight the rider's taps). */
+const readyNotified=new Set();
+/* The backend's geofence rejection message, kept per order. It stays on the card
+   (instead of the locally computed distance) until the rider is actually inside
+   the zone, so the server's reason is not silently overwritten by a re-render. */
+const geoBlocked=new Map();
+const GEO_BLOCK_TTL=90000;
+function seedReadyNotified(){
+ orders.filter(o=>String(o.riderStatus||'')==='reached_restaurant').forEach(o=>{if(kitchenReadyOf(o).ready)readyNotified.add(String(o.id))});
+}
+function tickPanels(now){
+ orders.filter(isActive).forEach(o=>{
+  const wEl=document.getElementById('wait-'+o.id);
+  if(wEl){const w=waitTimeOf(o,now);if(w.active){wEl.textContent=w.text;const nEl=document.getElementById('waitnote-'+o.id);if(nEl)nEl.textContent=w.note}}
+  const kEl=document.getElementById('kitchen-'+o.id);
+  if(kEl){const k=kitchenReadyOf(o,now);kEl.dataset.ready=k.ready?'1':'0';kEl.classList.toggle('ready',k.ready);kEl.classList.toggle('prep',!k.ready);kEl.textContent=k.text;
+   /* Chime once per order when the kitchen packs it, whether the news arrives
+      by push or by the next poll. */
+   if(k.ready&&!readyNotified.has(String(o.id))){readyNotified.add(String(o.id));orderReadyAlert({orderId:o.id,body:'Order '+orderRef(o)+' is packed and ready at the counter.'})}}
+  const gEl=document.getElementById('geo-'+o.id);
+  if(gEl){
+   const g=geofenceOf(o);
+   const blocked=geoBlocked.get(String(o.id));
+   if(blocked&&(g.inside||now-blocked.at>GEO_BLOCK_TTL))geoBlocked.delete(String(o.id));
+   const useBlocked=geoBlocked.has(String(o.id));
+   if(g.known||useBlocked){
+    gEl.textContent=useBlocked?'📍 '+geoBlocked.get(String(o.id)).message:g.text;
+    gEl.classList.toggle('inside',!useBlocked&&g.inside);
+    gEl.classList.toggle('outside',useBlocked||!g.inside);
+    gEl.classList.remove('unknown');
+   }
+  }
+ });
+}
+setInterval(()=>tickPanels(Date.now()),1000);
 
 
 /* ------------------------------------------------------------------ rendering */
@@ -621,8 +834,9 @@ function orderCard(o){
  const earn=pickRiderEarning(o);
  return `<article class="card" id="order-${esc(o.id)}"><div class="orderHead"><div><div class="orderNo">${esc(orderRef(o))}</div>${o.publicShipmentId||o.shipmentId?`<div class="ship">Shipment ${esc(o.publicShipmentId||o.shipmentId)}</div>`:''}</div>${pay}${kitchenBadge(o)}${chip}</div>
  <div class="route"><div class="party"><span class="pin${customerStage?'':' restaurant'}">${customerStage?'C':'R'}</span><div><b>${esc(target.name)}</b><small>${esc(customerStage?target.address:(addr((o.restaurant&&o.restaurant.address)||o.restaurantAddress||o.pickupAddress)))}</small><small class="ship">${targetLabel}</small></div>${contact?`<a class="phone" href="tel:${esc(contact)}">Call</a>`:'<span class="phone missing">No phone</span>'}</div></div>
- ${gateNote}${instructionsMarkup(o)}${issueMarkup(o)}
+ ${gateNote}${handoverStrip(o)}${geofenceBadge(o)}${kitchenPanel(o)}${paymentBanner(o)}${instructionsMarkup(o)}${issueMarkup(o)}
  <div class="meta"><div class="metaBox"><small>${customerStage?'Drop distance':'Pickup distance'}</small><b>${esc(customerStage?dist:(restaurantDistance(o)!=null?kmText(restaurantDistance(o)):dist))}</b></div><div class="metaBox"><small>Rider earning</small><b>${earn?money(earn.value):'—'}</b></div><div class="metaBox"><small>Items</small><b>${(o.items||[]).reduce((n,i)=>n+Number(i.quantity||1),0)}</b></div></div>
+ ${earningBreakdownMarkup(o)}
  ${['accepted','reached_restaurant'].includes(o.riderStatus)?`<div class="instructions"><b>Pickup ${esc(orderRef(o))}</b>${esc((o.items||[]).map(i=>(i.name||i.title||'Item')+' ×'+(i.quantity||1)).join(', '))}</div>`:''}${timeline(o.riderStatus)}
  <div class="actions">${targetNav?`<a class="btn" href="${targetNav}" target="_blank" rel="noopener">${customerStage?'Navigate customer':'Navigate restaurant'}</a>`:'<button class="btn" disabled type="button">Navigation unavailable</button>'}${contact?`<a class="btn" href="tel:${esc(contact)}">${contactLabel}</a>`:`<button class="btn" disabled type="button">${customerStage?'Customer':'Restaurant'} phone unavailable</button>`}${['picked_up','out_for_delivery'].includes(o.riderStatus)?`<button class="btn danger" type="button" data-issue="${esc(o.id)}">Report issue</button>`:''}${a?`<button class="btn ${a.type==='accept'||a.type==='otp'?'primary':''}" type="button" data-action="${a.type}:${a.next||''}" data-id="${esc(o.id)}"${actionLocked(o.id)?' disabled aria-busy="true"':''}>${esc(a.label)}</button>`:''}<button class="btn blue" type="button" data-copy="${esc(orderRef(o))}">Copy order ID</button></div></article>`;
 }
@@ -634,6 +848,8 @@ function render(){
  $('activeCount').textContent=active.length;
  $('orderCount').textContent=visible.length;
  renderFocus(active[0]||null);
+ renderCashCard();
+ renderShiftBanners();
  if(!visible.length){
    const gpsAction=!riderPos;
    $('orders').innerHTML=emptyState({title:filter==='all'?'No active deliveries':'Nothing in this stage',body:filter==='all'?'New deliveries assigned to you will appear here automatically.':'Switch to All to see your other active deliveries.',actionLabel:gpsAction?'Turn on location':null,actionId:'emptyGps'});
@@ -671,10 +887,12 @@ function renderFocus(o){
     <div class="focusStop"><span class="pin${customerStage?'':' restaurant'}">${customerStage?'C':'R'}</span><div><b>${esc(customerStage?c.name:r.name)}</b><small>${esc(customerStage?c.address:addr((o.restaurant&&o.restaurant.address)||o.restaurantAddress||o.pickupAddress))}</small></div>${contact?`<a class="phone" href="tel:${esc(contact)}">Call</a>`:''}</div>
   </div>
   ${gate.relevant&&!gate.allowed?`<div class="issueMini" style="margin:12px 0 0"><b>Not ready yet</b>${esc(gate.reason)}</div>`:''}
+  ${handoverStrip(o)}${geofenceBadge(o)}${kitchenPanel(o)}${paymentBanner(o)}
   <div class="focusMeta">
     <div class="metaBox"><small>${customerStage?'Drop distance':'Pickup distance'}</small><b>${esc(distVal)}</b></div>
     <div class="metaBox"><small>Rider earning</small><b>${pickRiderEarning(o)?money(pickRiderEarning(o).value):'—'}</b></div>
   </div>
+  ${earningBreakdownMarkup(o)}
   ${timeline(o.riderStatus)}
   <div class="focusActions">
     ${actionBtn}
@@ -688,6 +906,59 @@ function renderFocus(o){
 }
 
 function timeline(s){const idx=FLOW.indexOf(s);return '<div class="timeline">'+FLOW.map((x,i)=>`<div class="step ${i<=idx?'done':''}">${esc(statusLabel(x).replace('New assignment','Assigned'))}</div>`).join('')+'</div>'}
+
+/* ---- upgrade cards shared by the focus card and every list card ------------- */
+
+/* Live 200 m pickup-zone badge for the approach legs. */
+function geofenceBadge(o){
+ if(!['assigned','accepted'].includes(String(o.riderStatus||'')))return '';
+ const blocked=geoBlocked.get(String(o.id));
+ const g=geofenceOf(o);
+ if(blocked&&!g.inside)return `<div class="geofence outside" id="geo-${esc(o.id)}">📍 ${esc(blocked.message)}</div>`;
+ if(!g.known)return '<div class="geofence unknown" id="geo-'+esc(o.id)+'">📍 Distance to restaurant unavailable</div>';
+ return `<div class="geofence ${g.inside?'inside':'outside'}" id="geo-${esc(o.id)}">${esc(g.text)}</div>`;
+}
+
+/* Doorstep payment banner: cash to collect, or a do-not-collect reassurance. */
+function paymentBanner(o){
+ if(!['picked_up','out_for_delivery'].includes(String(o.riderStatus||'')))return '';
+ const p=paymentOf(o);
+ return `<div class="payBanner ${p.isCod?'cod':'prepaid'}">${esc(p.banner)}</div>`;
+}
+
+/* Wait-time counter + kitchen readiness handshake, shown while at the counter. */
+function kitchenPanel(o){
+ if(String(o.riderStatus||'')!=='reached_restaurant')return '';
+ const w=waitTimeOf(o),k=kitchenReadyOf(o);
+ return `<div class="kitchenPanel">
+  <div class="waitTimer" id="wait-${esc(o.id)}" data-started="${esc(o.reachedRestaurantAt||o.reachedAt||o.riderReachedAt||'')}">${esc(w.text||'⏱️ Waiting at restaurant')}</div>
+  <div class="waitNote" id="waitnote-${esc(o.id)}">${esc(w.note||'')}</div>
+  <div class="kitchenStatus ${k.ready?'ready':'prep'}" id="kitchen-${esc(o.id)}" data-readyat="${esc(o.estimatedReadyAt||o.expectedReadyAt||o.readyAt||'')}" data-ready="${k.ready?'1':'0'}">${esc(k.text)}</div>
+ </div>`;
+}
+
+/* Counter handover facts: 4-digit pickup ID and any cutlery request. */
+function handoverStrip(o){
+ if(!['accepted','reached_restaurant'].includes(String(o.riderStatus||'')))return '';
+ const h=handoverOf(o);
+ if(!h.display&&!h.cutlery)return '';
+ return `<div class="handoverStrip">${h.display?`<span class="pickupCode">Pickup ID ${esc(h.display)}</span>`:''}${h.cutlery?`<span class="cutleryBadge">🍴 ${esc(h.cutleryLabel)}</span>`:''}</div>`;
+}
+
+/* Expandable per-order earning breakdown. Only backend-supplied components are
+   shown; a missing component reads "—" rather than an invented amount. */
+function earningBreakdownMarkup(o){
+ const b=breakdownOf(o);
+ if(!b||!b.hasAny)return '';
+ const total=b.total!=null?money(b.total):(b.componentSum!=null?money(b.componentSum):'—');
+ return `<details class="earnBreak"><summary><span>Rider earning</span><b>${esc(total)}</b></summary>
+  <div class="rows" style="padding:0 4px">
+   ${b.lines.map(l=>`<div class="row"><span class="rowLabel">${esc(l.label)}${l.hint?` <span class="rowHint">${esc(l.hint)}</span>`:''}</span><b>${l.value==null?'—':money(l.value)}</b></div>`).join('')}
+  </div>
+  ${b.complete?'':'<p class="rowNote" style="padding:8px 4px 0">Some components were not returned by the backend yet, so they are shown as “—”. No amount is estimated.</p>'}
+ </details>`;
+}
+
 function issueMarkup(o){const i=o.deliveryIssue;if(!i||i.status!=='reported')return '';return `<div class="issueMini"><b>Delivery issue reported</b>${esc(i.reason)}${i.note?` — ${esc(i.note)}`:''}</div>`}
 function instructionsMarkup(o){const text=o.deliveryInstructions||o.restaurantNote;if(!text)return '';return `<div class="instructions"><b>Delivery note</b>${esc(text)}</div>`}
 function navUrl(c){return c?`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat+','+c.lng)}`:null}
@@ -716,6 +987,7 @@ function renderEarnings(){
  $('breakdownPeriod').textContent=label;
  $('earnSub').textContent=`${countOf(cur)} ${countOf(cur)===1?'delivery':'deliveries'} completed`;
  renderBreakdown(cur);
+ renderPerOrderEarnings();
  renderWeeklyIncentive(countOf(x.thisWeek),!incentiveIsExact());
  renderChart();
 }
@@ -878,17 +1150,90 @@ $('offerLater').addEventListener('click',closeOffer);
 async function doAction(kind,id,btn){
  const[type,next]=kind.split(':');
  if(type==='otp'){openOtp(id);return}
+ if(type==='pickup'){openPickup(id);return}
  const o=orders.find(x=>x.id===id)||history.find(x=>x.id===id);
  const gate=o?pickupGate(o):{allowed:true};
  if(!gate.allowed){toast(gate.reason||'This action is not available yet.');return}
  if(actionLocked(id))return;
  setOrderButtonsBusy(id,btn);
  try{
-   const r=await lockedCall(id,()=>api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:type==='accept'?'accepted':next})}));
+   const body={status:type==='accept'?'accepted':next};
+   /* The backend geofences "reached restaurant"; send the live fix so it can
+      verify the 200 m pickup zone instead of trusting the client. */
+   if(next==='reached_restaurant'&&riderPos){body.lat=riderPos.lat;body.lng=riderPos.lng}
+   const r=await lockedCall(id,()=>api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}));
    if(r.skipped)return;
    toast(type==='accept'?'Delivery accepted':'Delivery updated');await Promise.all([loadOrders(true),loadEarnings()])
- }catch(e){toast(e.message);await loadOrders(true)}
+ }catch(e){
+   /* A 400 on reached_restaurant is the backend's geofence verdict: surface its
+      distance message prominently instead of a bare "Request failed". */
+   if(next==='reached_restaurant'&&e.status===400){geofenceBlocked(id,e.message);await loadOrders(true)}
+   else{toast(e.message);await loadOrders(true)}
+ }
  finally{startCooldown(id);render()}
+}
+/* Clear, persistent banner for a rejected arrival so the rider knows to move
+   closer rather than tapping again. */
+function geofenceBlocked(id,message){
+ const o=orders.find(x=>x.id===id)||{};
+ const g=geofenceOf(o);
+ const text=message||(g.known?g.text:'You must be within the restaurant pickup zone to mark arrival.');
+ geoBlocked.set(String(id),{message:text,at:Date.now()});
+ toast(text);
+ const el=document.getElementById('geo-'+id);
+ if(el){el.textContent='📍 '+text;el.classList.remove('inside','unknown');el.classList.add('outside')}
+}
+
+/* ---- counter handover (picked_up) ------------------------------------------
+ * Shows the 4-digit pickup ID and any cutlery request, and lets the rider
+ * confirm the code and attach an optional package/bill photo before the
+ * picked_up status is sent with { pickupCode, pickupPhotoUrl }. */
+function openPickup(id){
+ const o=orders.find(x=>x.id===id)||history.find(x=>x.id===id);if(!o)return;
+ pickupOrderId=id;
+ const h=handoverOf(o),gate=pickupGate(o);
+ $('pickupSummary').innerHTML=`<div class="handover">
+   <div class="handoverRow"><small>Order</small><b>${esc(orderRef(o))}</b></div>
+   ${h.display?`<div class="handoverRow big"><small>Pickup ID at counter</small><b class="pickupCode">${esc(h.display)}</b></div>`:`<div class="handoverRow"><small>Pickup ID</small><b>Not provided</b></div>`}
+   ${h.cutlery?`<div class="handoverRow"><small>Cutlery</small><b class="cutleryBadge">🍴 ${esc(h.cutleryLabel)}</b></div>`:''}
+   <div class="handoverRow"><small>Items</small><b>${esc((o.items||[]).map(i=>(i.name||i.title||'Item')+' ×'+(i.quantity||1)).join(', ')||'—')}</b></div>
+  </div>${gate.relevant&&!gate.allowed?`<div class="issueMini" style="margin:12px 0 0"><b>Not ready yet</b>${esc(gate.reason)}</div>`:''}`;
+ $('pickupCodeField').hidden=!h.requiresCode;
+ $('pickupCodeInput').value='';
+ $('pickupPhotoInput').value='';
+ $('pickupMsg').textContent='';
+ $('pickupModal').classList.add('show');
+ if(h.requiresCode)$('pickupCodeInput').focus();
+}
+$('closePickup').onclick=()=>{$('pickupModal').classList.remove('show');pickupOrderId=null};
+$('confirmPickup').onclick=async()=>{
+ const id=pickupOrderId;if(!id||guard.isBusy(id))return;
+ const o=orders.find(x=>x.id===id)||history.find(x=>x.id===id)||{};
+ const h=handoverOf(o),gate=pickupGate(o);
+ const msg=$('pickupMsg');
+ if(!gate.allowed){msg.textContent=gate.reason||'Pickup is not available yet.';return}
+ const code=$('pickupCodeInput').value.replace(/\D/g,'').slice(0,4);
+ if(h.requiresCode&&!((RL&&RL.isValidPickupCode)?RL.isValidPickupCode(code):/^\d{4}$/.test(code))){msg.textContent='Enter the 4-digit pickup code from the restaurant.';return}
+ const b=$('confirmPickup');b.disabled=true;b.textContent='Confirming…';msg.textContent='';
+ try{
+   const photoUrl=await uploadPickupPhoto($('pickupPhotoInput').files?.[0]);
+   const body={status:'picked_up'};
+   if(code)body.pickupCode=code;
+   if(photoUrl)body.pickupPhotoUrl=photoUrl;
+   await lockedCall(id,()=>api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}));
+   $('pickupModal').classList.remove('show');pickupOrderId=null;
+   toast('Pickup confirmed');await Promise.all([loadOrders(true),loadEarnings()]);
+ }catch(e){msg.textContent=e.message}
+ finally{b.disabled=false;b.textContent='Confirm pickup';startCooldown(id);render()}
+};
+/* The photo is optional: a failed upload must never block the pickup. */
+async function uploadPickupPhoto(file){
+ if(!file)return '';
+ try{
+  const fd=new FormData();fd.append('photo',file);
+  const d=await api('/api/riders/orders/'+pickupOrderId+'/pickup-photo',{method:'POST',body:fd});
+  return (d&&(d.url||d.data?.url||d.data?.pickupPhotoUrl))||'';
+ }catch{toast('Photo upload skipped — pickup will still be confirmed.');return ''}
 }
 /* Disable every action button for this order (the focus card and the list card
    both render it) until the request settles. */
@@ -899,7 +1244,17 @@ function setOrderButtonsBusy(id,clicked){
 function openOtp(id){
  otpOrderId=id;
  const o=(orders.concat(history)).find(x=>x.id===id);
- if(o&&isCOD(o)){$('otpMsg').textContent='💵 Collect '+money(o.total)+' cash before confirming.';$('otpMsg').style.color='var(--warn)'}
+ const pay=paymentOf(o||{});
+ const banner=$('otpPayBanner');
+ if(o){banner.hidden=false;banner.textContent=pay.banner;banner.classList.toggle('cod',pay.isCod);banner.classList.toggle('prepaid',!pay.isCod)}
+ else{banner.hidden=true;banner.textContent=''}
+ /* A COD delivery cannot be completed until the rider confirms the cash was
+    collected. Prepaid (or unspecified) orders never show this toggle, so the
+    existing flows and tests are unchanged. */
+ const wrap=$('codConfirmWrap'),box=$('codConfirm');
+ if(pay.requiresCashConfirmation){wrap.hidden=false;box.checked=false;$('codConfirmLabel').textContent=pay.confirmationLabel}
+ else{wrap.hidden=true;box.checked=false;$('codConfirmLabel').textContent=''}
+ if(o&&isCOD(o)){$('otpMsg').textContent='💵 Collect '+money(pay.amount)+' cash before confirming.';$('otpMsg').style.color='var(--warn)'}
  else{$('otpMsg').textContent='';$('otpMsg').style.color=''}
  if(verifiedOtp.has(String(id))){$('otpMsg').textContent='PIN already accepted. Tap “Verify PIN” to finish the delivery.';$('otpMsg').style.color='var(--warn)'}
  $('otpModal').classList.add('show');['o0','o1','o2','o3'].forEach(x=>$(x).value='');$('o0').focus();
@@ -909,23 +1264,27 @@ $('closeOtp').onclick=()=>{$('otpModal').classList.remove('show');otpOrderId=nul
 $('verifyOtp').onclick=async()=>{
  const id=otpOrderId;if(!id||guard.isBusy('otp:'+id))return;
  const known=(orders.concat(history)).find(x=>x.id===id)||{};
+ const pay=paymentOf(known);
  const step=RL&&RL.nextDeliveryStep?RL.nextDeliveryStep(id,verifiedOtp,known.status):(verifiedOtp.has(String(id))?'deliver-only':'verify-and-deliver');
  const otp=['o0','o1','o2','o3'].map(x=>$(x).value).join('');
  if(step==='verify-and-deliver'&&otp.length!==4){$('otpMsg').textContent='Enter all 4 digits.';$('otpMsg').style.color='var(--danger)';return}
+ if(pay.requiresCashConfirmation&&!$('codConfirm').checked){$('otpMsg').textContent='Tick the box to confirm you collected '+money(pay.amount)+' in cash.';$('otpMsg').style.color='var(--danger)';return}
  const b=$('verifyOtp');b.disabled=true;b.textContent='Verifying…';
  try{
    await guard.run('otp:'+id,async()=>{
      if(step==='verify-and-deliver'){
-       await api('/api/riders/orders/'+id+'/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp})});
+       await api('/api/riders/orders/'+otpOrderId+'/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp})});
        verifiedOtp.add(String(id));
      }
-     await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'delivered'})});
+     const body={status:'delivered'};
+     if(pay.requiresCashConfirmation)body.codCashCollected=true;
+     await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    });
    verifiedOtp.delete(String(id));
    $('otpModal').classList.remove('show');otpOrderId=null;
    /* Refresh first so the completed order leaves the active queue and the
       finalized earning is available before the confirmation is shown. */
-   await Promise.all([loadOrders(true),loadHistory(true),loadEarnings()]);
+   await Promise.all([loadOrders(true),loadHistory(true),loadEarnings(),loadCash()]);
    showCompletion(id);
  }catch(e){$('otpMsg').textContent=e.message+(verifiedOtp.has(String(id))?' Your PIN was accepted — tap “Verify PIN” again to finish the delivery.':'');$('otpMsg').style.color='var(--danger)'}
  finally{b.disabled=false;b.textContent='Verify PIN'}
@@ -962,7 +1321,7 @@ async function loadOrders(reset=true){
    const got=(d.data?.orders||[]).map(normalize);
    orders=reset?got:[...orders,...got.filter(x=>!orders.some(y=>y.id===x.id))];
    pages=Number(d.data?.pages||1);$('loadMore').classList.toggle('hidden',page>=pages);
-   render();checkAssignments();sendLocation();return true;
+   render();checkAssignments();sendLocation();seedReadyNotified();loadCash();return true;
  }catch(e){
    if(seq===ordersRequestSeq){
      $('orders').innerHTML=emptyState({icon:'alert',title:'Could not load deliveries',body:e.message,error:true,actionLabel:'Try again',actionId:'retryOrders'});
@@ -989,7 +1348,7 @@ async function loadHistory(reset=true){
 }
 async function loadEarnings(){
  if(earningsLoading)return;earningsLoading=true;
- try{const d=await api('/api/riders/earnings');earnings=d.data;renderEarnings();renderHeroProgress()}
+ try{const d=await api('/api/riders/earnings');earnings=d.data;renderEarnings();renderHeroProgress();renderSettlement()}
  catch{toast('Could not load earnings. Try refreshing.')}
  finally{earningsLoading=false}
 }
@@ -1013,6 +1372,7 @@ function showView(id){
  ['homeView','earningsView','historyView','profileView','moreView'].forEach(x=>$(x).classList.toggle('hidden',x!==id));
  document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
  window.scrollTo({top:0,behavior:'auto'});
+ if(id==='earningsView')renderCashCard();
  if(id==='historyView'&&!history.length)loadHistory(true);
  if(id==='moreView'){try{window.RiderExtras?.render?.()}catch(_){}}
 }

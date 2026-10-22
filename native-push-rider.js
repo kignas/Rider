@@ -66,7 +66,7 @@
         id: CHANNEL_ID, name: 'Eatswada order alerts',
         description: 'Important Eatswada order updates', importance: 5,
         sound: 'default', vibration: true, visibility: 1,
-        lights: true, lightColor: '#D71945'
+        lights: true, lightColor: '#690D27'
       }).catch(() => {});
       await Push.addListener('registration', event => registerToken(event?.value));
       await Push.addListener('registrationError', event =>

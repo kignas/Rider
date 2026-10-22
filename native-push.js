@@ -23,6 +23,10 @@
   const API_BASE = API_ORIGIN.replace(/\/+$/, '') + '/api';
   const TOKEN_KEY = ROLE === 'vendor' ? 'nearbite_vendor_token' : 'riderToken';
   const CHANNEL_ID = 'eatswada_orders';
+  /* The kitchen handshake arrives as an ORDER_READY push. It gets its own
+     notification id space so it can never replace a new-order alert. */
+  const READY_TYPES = ['order_ready', 'ORDER_READY', 'kitchen_order_ready'];
+  const isOrderReady = data => READY_TYPES.includes(String(data?.type || ''));
 
   function getAuthToken() { return localStorage.getItem(TOKEN_KEY); }
 
@@ -51,16 +55,20 @@
   }
 
   function notificationId(data) {
+    // Order-ready alerts use a separate id space so they never collide with (or
+    // overwrite) the new-order alert for the same order.
     const value = String(data?.orderId || data?.applicationId || data?.type || Date.now());
     let hash = 0;
     for (let i = 0; i < value.length; i++) hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
-    return Math.abs(hash) || 1;
+    const id = Math.abs(hash) || 1;
+    return isOrderReady(data) ? id + 100000 : id;
   }
 
   async function alertForeground(notification) {
     const data = notification?.data || {};
-    const title = notification?.title || data.title || 'Eatswada order alert';
-    const body = notification?.body || data.body || 'A new update needs your attention.';
+    const ready = isOrderReady(data);
+    const title = notification?.title || data.title || (ready ? 'Order ready for pickup' : 'Eatswada order alert');
+    const body = notification?.body || data.body || (ready ? 'The restaurant has packed your order.' : 'A new update needs your attention.');
     if (Local?.schedule) {
       try {
         await Local.schedule({ notifications: [{
@@ -74,7 +82,7 @@
         console.warn('[Eatswada native push] Local notification failed:', error.message);
       }
     }
-    try { navigator.vibrate?.([400, 200, 400]); } catch (_) {}
+    try { navigator.vibrate?.(ready ? [180, 90, 180] : [400, 200, 400]); } catch (_) {}
   }
 
   async function setup() {
@@ -88,7 +96,7 @@
         id: CHANNEL_ID, name: 'Eatswada order alerts',
         description: 'Important order and delivery updates',
         importance: 5, sound: 'default', vibration: true, visibility: 1,
-        lights: true, lightColor: '#D71945'
+        lights: true, lightColor: '#690D27'
       }).catch(() => {});
 
       await Push.addListener('registration', event => registerToken(event?.value));
