@@ -36,7 +36,7 @@ img{max-width:100%}
       <div class="logo" id="brandLogo" aria-hidden="true"><img id="brandLogoImg" src="icon.png" alt="" width="36" height="36" decoding="async"></div>
       <span class="brandName">Eatswada</span>
     </div>
-    <button class="online" id="onlineBtn" type="button" aria-live="polite"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
+    <button class="online" id="onlineBtn" type="button" role="switch" aria-checked="false" aria-pressed="false" aria-label="Go online to receive deliveries" title="Tap to go online or offline"><span class="dot" id="onlineDot"></span><span id="onlineText">Offline</span></button>
   </div>
 </header>
 
@@ -71,6 +71,8 @@ img{max-width:100%}
       <span id="locationBtnText">Turn on GPS</span>
     </button>
   </div>
+
+  <p class="locationHint" id="locationHint">Turn on location so Eatswada can match you to nearby pickups. Your position is shared with dispatch only while you are online.</p>
 
   <div id="focusWrap"></div>
 
@@ -475,15 +477,24 @@ async function unregisterDeviceToken(){const t=getFcmToken();if(!t)return;try{aw
 
 async function loadProfile(){const d=await api('/api/riders/profile');profile=d.data||d;const r=profile,initial=(r.name||'R').trim()[0]?.toUpperCase()||'R';['avatar','profileAvatar'].forEach(id=>$(id).innerHTML=r.avatar?`<img src="${esc(r.avatar)}" alt="">`:esc(initial));$('riderName').textContent=r.name||'Rider';$('riderMeta').textContent=[r.riderDetails?.vehicleType,r.riderDetails?.vehicleNumber].filter(Boolean).join(' • ')||'Vehicle not set';$('riderZone').textContent=r.riderDetails?.deliveryZone||'Service area not set';$('profileName').textContent=r.name||'Rider';$('profilePhone').textContent=r.phone||r.email||'—';$('profileVehicle').textContent=r.riderDetails?.vehicleType||'—';$('profileVehicleNo').textContent=r.riderDetails?.vehicleNumber||'—';$('profileZone').textContent=r.riderDetails?.deliveryZone||'—';setOnlineUI(!!r.riderDetails?.isOnline,false)}
 
-function setOnlineUI(on){$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';$('onlineBtn').classList.toggle('on',on);$('onlineBtn').setAttribute('aria-pressed',on?'true':'false');const hs=$('homeStatus');if(hs){hs.classList.toggle('on',on);$('homeStatusTitle').textContent=on?"You're online":"You're offline"}if(on&&!onlineSince){const saved=Number(localStorage.getItem(LS_ONLINE_SINCE)||0);onlineSince=saved||Date.now();try{localStorage.setItem(LS_ONLINE_SINCE,String(onlineSince))}catch{}}if(!on){onlineSince=null;try{localStorage.removeItem(LS_ONLINE_SINCE)}catch{}}renderOnlineTime()}
-async function toggleOnline(on){const b=$('onlineBtn');if(b.getAttribute('aria-busy')==='true')return;b.setAttribute('aria-busy','true');if(on){Alarm.unlock();try{if(Notification.permission==='default')await Notification.requestPermission()}catch{}}try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});setOnlineUI(on);toast(on?'You are online':'You are offline')}catch(e){toast(e.message)}finally{b.removeAttribute('aria-busy')}}
+function setOnlineUI(on){const b=$('onlineBtn');$('onlineDot').classList.toggle('on',on);$('onlineText').textContent=on?'Online':'Offline';b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');b.setAttribute('aria-checked',on?'true':'false');b.setAttribute('aria-label',on?'You are online. Tap to go offline':'You are offline. Tap to go online');const hs=$('homeStatus');if(hs){hs.classList.toggle('on',on);$('homeStatusTitle').textContent=on?"You're online":"You're offline"}if(on&&!onlineSince){const saved=Number(localStorage.getItem(LS_ONLINE_SINCE)||0);onlineSince=saved||Date.now();try{localStorage.setItem(LS_ONLINE_SINCE,String(onlineSince))}catch{}}if(!on){onlineSince=null;try{localStorage.removeItem(LS_ONLINE_SINCE)}catch{}}renderOnlineTime();syncBackgroundTracking(on)}
+async function toggleOnline(on){const b=$('onlineBtn');if(b.getAttribute('aria-busy')==='true')return;b.setAttribute('aria-busy','true');if(on){Alarm.unlock();try{if(Notification.permission==='default')await Notification.requestPermission()}catch{}}try{await api('/api/riders/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isOnline:on})});setOnlineUI(on);toast(on?'You are online':'You are offline');syncBackgroundTracking(on)}catch(e){toast(e.message)}finally{b.removeAttribute('aria-busy')}}
+/* The native Android background-location bridge (rider-background-location.js,
+   bundled into www/ by prepare-www) keeps the rider's position fresh for
+   dispatch while the app is backgrounded. It is native-only and permission
+   gated by the plugin itself, so this is guarded and never runs on the web. */
+function syncBackgroundTracking(on){const bg=window.RiderBackgroundLocation;if(!bg||!bg.isNativeAndroid||!bg.isNativeAndroid())return;try{if(on)bg.start().catch(()=>{});else bg.stop().catch(()=>{})}catch{}}
+/* The header switch drives the real PUT /api/riders/status call. It flips the
+   server-confirmed state (aria-pressed), never a blind optimistic toggle, so a
+   failed request leaves the button showing the true state. */
+$('onlineBtn').onclick=()=>toggleOnline($('onlineBtn').getAttribute('aria-pressed')!=='true');
 function renderOnlineTime(){const wrap=$('heroOnlineWrap');if(!wrap)return;const saved=onlineSince||Number(localStorage.getItem(LS_ONLINE_SINCE)||0);if(!saved){wrap.hidden=true;return}wrap.hidden=false;$('heroOnlineValue').textContent=durText(Date.now()-saved)}
 setInterval(renderOnlineTime,60000);
 
 /* ---- GPS ------------------------------------------------------------------ */
 function applyFix(p){const lat=p.coords.latitude,lng=p.coords.longitude;const v=RL?RL.validateCoordinates(lat,lng):{valid:Number.isFinite(lat)&&Number.isFinite(lng)};if(!v.valid){toast(v.message||'The device reported an invalid location.');return false}riderPos={lat,lng,accuracy:p.coords.accuracy,at:Date.now()};return true}
 function gpsMessage(code){if(code===1)return 'Location permission was denied. Enable it in Android settings to go online.';if(code===2)return 'GPS is turned off on this phone. Turn on location services.';if(code===3)return 'Could not get a GPS fix in time. Move to an open area and retry.';return 'Location is unavailable.'}
-function updateGpsUI(){const on=!!riderPos;$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`Location active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'Location off';const btn=$('locationBtn');btn.classList.toggle('off',!on);$('locationBtnText').textContent=on?'GPS on':'Turn on GPS';btn.setAttribute('aria-pressed',on?'true':'false')}
+function updateGpsUI(){const on=!!riderPos;$('profileGps').textContent=on?'Active':'Off';$('heroGpsDot').classList.toggle('on',on);$('heroGpsText').textContent=on?`Location active${riderPos.accuracy?` • ±${Math.round(riderPos.accuracy)}m`:''}`:'Location off';const btn=$('locationBtn');btn.classList.toggle('off',!on);$('locationBtnText').textContent=on?'GPS on':'Turn on GPS';btn.setAttribute('aria-pressed',on?'true':'false');const hint=$('locationHint');if(hint)hint.hidden=on}
 function startGPS(){if(!navigator.geolocation){toast('GPS is not supported on this phone.');return}if(gpsWatch!==null){navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;riderPos=null;updateGpsUI();render();return}$('locationBtnText').textContent='Locating…';gpsWatch=navigator.geolocation.watchPosition(p=>{if(applyFix(p)){updateGpsUI();render();sendLocation()}},e=>{gpsWatch=null;toast(gpsMessage(e&&e.code));updateGpsUI()},{enableHighAccuracy:true,maximumAge:10000,timeout:15000})}
 $('locationBtn').onclick=startGPS;
 let lastLoc=0,locDirty=false;
@@ -495,13 +506,33 @@ window.addEventListener('eatswada:background-location-error',e=>{toast(e.detail?
 window.addEventListener('eatswada:background-location-state',e=>{if(!e.detail?.running&&!riderPos)updateGpsUI()});
 
 /* ---- push ----------------------------------------------------------------- */
-function initPush(){try{if(!('serviceWorker'in navigator)||!('Notification'in window)||typeof firebase==='undefined')return;if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./'}).then(reg=>{if(Notification.permission==='default')return Notification.requestPermission().then(()=>reg);return reg}).then(async reg=>{if(Notification.permission!=='granted')return;const m=firebase.messaging(),t=await m.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});if(t){setFcmToken(t);const rr=await fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token:t})});if(!rr.ok)throw new Error('Rider notification token registration failed.')}m.onMessage(p=>{const d=p?.data||{};if(d.type==='rider_assignment'){Alarm.start(1);notify('New delivery assigned',d.body||'A new delivery is waiting.');loadOrders(true)}else if(d.type==='delivery_issue'||d.orderId){loadOrders(true)}})}).catch(()=>{})}catch{}}
+/* Idempotent web-push setup. initPush() is called from several entry points
+   (first tap, boot, visibility) and must never register the service worker
+   twice or attach a second FCM message handler — that produced duplicate
+   alarms and duplicate loadOrders() bursts. */
+let __pushInit=null,__pushBound=false,__swReg=null;
+function initPush(){
+ if(__pushInit)return __pushInit;
+ __pushInit=(async()=>{try{
+  if(!('serviceWorker'in navigator)||!('Notification'in window)||typeof firebase==='undefined')return;
+  if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+  __swReg=__swReg||navigator.serviceWorker.register('./firebase-messaging-sw.js',{scope:'./'});
+  let reg=await __swReg;
+  if(Notification.permission==='default'){await Notification.requestPermission();reg=await __swReg}
+  if(Notification.permission!=='granted')return;
+  const m=firebase.messaging();
+  if(!__pushBound){__pushBound=true;m.onMessage(p=>{const d=p?.data||{};if(d.type==='rider_assignment'){Alarm.start(1);notify('New delivery assigned',d.body||'A new delivery is waiting.');loadOrders(true)}else if(d.type==='delivery_issue'||d.orderId){loadOrders(true)}})}
+  const t=await m.getToken({vapidKey:VAPID_KEY,serviceWorkerRegistration:reg});
+  if(t){setFcmToken(t);const rr=await fetch(API_BASE+'/api/notifications/register-token',{method:'POST',headers:{...auth(),'Content-Type':'application/json'},body:JSON.stringify({token:t})});if(!rr.ok)throw new Error('Rider notification token registration failed.')}
+ }catch{}})();
+ return __pushInit;
+}
 function highlightOrder(id){if(!id)return;showView('homeView');filter='all';document.querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render();setTimeout(()=>{const e=document.getElementById('order-'+id);if(e){e.scrollIntoView({behavior:'smooth',block:'center'});e.classList.add('flash');setTimeout(()=>e.classList.remove('flash'),2200)}},50)}
 if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='order-notification-click')highlightOrder(e.data.orderId)});
 window.addEventListener('eatswada:push-received',e=>{const d=e.detail?.data||{};if(d.type==='rider_assignment'||d.orderId)loadOrders(true)});
 window.addEventListener('eatswada:push-opened',e=>{const d=e.detail||{};if(d.orderId)highlightOrder(d.orderId);else refresh(false)});
 $('assignBarBtn').onclick=()=>{const o=orders.find(x=>x.riderStatus==='assigned');if(o)highlightOrder(o.id)};
-document.addEventListener('pointerdown',()=>{Alarm.unlock();initPush();try{if(Notification.permission==='default')Notification.requestPermission()}catch{}},{once:true});
+document.addEventListener('pointerdown',()=>{Alarm.unlock();initPush()},{once:true});
 
 let firstLoad=true,lastAssigned=new Set();
 function markAssignmentNotified(id){try{const k='eatswada_rider_notified_assignments';const a=JSON.parse(localStorage.getItem(k)||'[]');if(!a.includes(String(id))){a.push(String(id));localStorage.setItem(k,JSON.stringify(a.slice(-200)));return false}return true}catch{return false}}
@@ -933,7 +964,11 @@ $('earningPolicyNote').textContent='Each completed delivery earns a delivery fee
 
 updateGpsUI();
 renderHeroProgress();
-refresh(true).then(()=>{const id=new URLSearchParams(location.search).get('order');if(id)highlightOrder(id);initPush()});
+refresh(true).then(()=>{const id=new URLSearchParams(location.search).get('order');if(id)highlightOrder(id);initPush();
+  /* Resume background tracking only if the server already confirms the rider is
+     online (never for an offline rider) and this is the native Android app. */
+  const bg=window.RiderBackgroundLocation;
+  if(bg&&bg.isNativeAndroid&&bg.isNativeAndroid()&&onlineSince)bg.resumeIfRequested?.().catch?.(()=>{})});
 startPolling();
 })();
 

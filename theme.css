@@ -195,6 +195,11 @@ body{background:var(--bg);color:var(--text)}
 .gpsChip:active{transform:scale(.97)}
 .gpsChip:not(.off){background:#fff;border-color:rgba(24,160,106,.4);color:var(--okDark)}
 
+/* Short, plain-language reason shown before the OS location prompt appears. */
+.locationHint{
+  margin:10px 2px 0;font-size:12px;line-height:1.5;color:var(--muted);font-weight:600;
+}
+
 /* ============================ home: stats ============================ */
 .stats{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;margin-top:14px}
 .stat{
