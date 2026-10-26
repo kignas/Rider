@@ -278,13 +278,12 @@ test('rupees formats with Indian grouping and optional paise', () => {
 
 /* ---- Dashboard wiring (static assertions) ---------------------------------- */
 
-test('the dashboard sends the geofence, pickup and COD payload fields', () => {
+test('the dashboard sends the geofence and COD payload fields', () => {
   const code = indexScript();
   assert.match(code, /body\.lat=riderPos\.lat;body\.lng=riderPos\.lng/);
-  assert.match(code, /body\.pickupCode=code/);
-  assert.match(code, /body\.pickupPhotoUrl=photoUrl/);
   assert.match(code, /body\.codCashCollected=true/);
-  // The pickup route stays the verified status endpoint.
+  // The pickup code goes to its dedicated verification route, not the status PUT.
+  assert.match(code, /'\/api\/riders\/orders\/'\+id\+'\/verify-pickup-code'/);
   assert.match(code, /'\/api\/riders\/orders\/'\+id\+'\/status'/);
 });
 
@@ -301,7 +300,7 @@ test('the dashboard renders every upgrade panel container', () => {
     'surgePill', 'rejectionWarn', 'cooldownBanner', 'locationHint', 'cashCard',
     'perOrderRows', 'settlementRows', 'settlementNet', 'ledgerRows',
     'otpPayBanner', 'codConfirmWrap', 'codConfirm', 'pickupModal', 'pickupSummary',
-    'pickupCodeInput', 'pickupPhotoInput',
+    'pickupCodeInput',
   ]) {
     assert.ok(html.includes(`id="${id}"`), `${id} must exist in index.html`);
   }

@@ -36,6 +36,7 @@ async function boot({ orders, profile, earnings, cash, payouts, position, reject
   /* The OTP sheet first POSTs to verify-otp; without a mock the 404 aborts the
      flow before the status PUT we want to assert. */
   const verifyOtpPattern = /^\/api\/riders\/orders\/[^/]+\/verify-otp$/;
+  const verifyPickupPattern = /^\/api\/riders\/orders\/[^/]+\/verify-pickup-code$/;
 
   const errors = [];
   const calls = [];
@@ -56,7 +57,7 @@ async function boot({ orders, profile, earnings, cash, payouts, position, reject
         if (rejectStatus && /\/api\/riders\/orders\/[^/]+\/status$/.test(path) && opts.method === 'PUT') {
           return { ok: false, status: rejectStatus.status, json: async () => ({ success: false, message: rejectStatus.message }) };
         }
-        const route = routes[path] || (verifyOtpPattern.test(path) ? { success: true, data: {} } : null);
+        const route = routes[path] || ((verifyOtpPattern.test(path) || verifyPickupPattern.test(path)) ? { success: true, data: {} } : null);
         return route
           ? { ok: true, status: 200, json: async () => route }
           : { ok: false, status: 404, json: async () => ({ success: false, message: 'not found' }) };
@@ -253,20 +254,24 @@ const READY_ORDER = {
 
 const putCalls = (calls, suffix) => calls.filter(c => c.method === 'PUT' && c.path.endsWith(suffix));
 
-test('the pickup handover sends the 4-digit code to the status endpoint', { skip: !JSDOM }, async () => {
+test('the pickup handover verifies the code then advances the status', { skip: !JSDOM }, async () => {
   await withApp({ orders: [READY_ORDER], profile: PROFILE, earnings: EARNINGS, cash: { cashInHand: 0 }, payouts: {} }, async app => {
   assert.deepEqual(app.errors, []);
   const { doc } = app;
   doc.querySelector(`[data-action^="pickup"][data-id="${READY_ORDER._id}"]`).click();
   assert.equal(doc.getElementById('pickupModal').classList.contains('show'), true);
-  assert.match(doc.getElementById('pickupSummary').textContent, /#4821/);
   assert.equal(doc.getElementById('pickupCodeField').hidden, false);
   doc.getElementById('pickupCodeInput').value = '4821';
   doc.getElementById('confirmPickup').click();
   await new Promise(r => setTimeout(r, 200));
+  // The counter code goes to the real verification endpoint (POST)...
+  const verify = app.calls.find(c => c.method === 'POST' && c.path.endsWith(`/api/riders/orders/${READY_ORDER._id}/verify-pickup-code`));
+  assert.ok(verify, 'the pickup code must POST to verify-pickup-code');
+  assert.deepEqual(JSON.parse(verify.body), { pickupCode: '4821' });
+  // ...and the status PUT carries only the transition, never the code.
   const call = putCalls(app.calls, `/api/riders/orders/${READY_ORDER._id}/status`)[0];
   assert.ok(call, 'the pickup must PUT to the status endpoint');
-  assert.deepEqual(JSON.parse(call.body), { status: 'picked_up', pickupCode: '4821' });
+  assert.deepEqual(JSON.parse(call.body), { status: 'picked_up' });
   });
 });
 
@@ -362,5 +367,74 @@ test('an ORDER_READY push triggers the ready chime and alert', { skip: !JSDOM },
   }));
   await new Promise(r => setTimeout(r, 250));
   assert.match(doc.getElementById('toast').textContent, /Order is packed/);
+  });
+});
+
+/* ---- Backend-aligned upgrade: order ids, payment view, duplicate taps ------- */
+
+const NAMED_ORDER = {
+  _id: 'aa'.repeat(12), riderStatus: 'accepted', status: 'assigned',
+  orderNumber: 'NB100123', shipmentId: 'SH500001',
+  paymentMethod: 'COD', total: 250, riderEarning: 45,
+  payment: {
+    method: 'cod', isCod: true, isPartialCod: true, orderTotal: 250,
+    advanceRequired: 100, advancePaid: 100, advanceStatus: 'paid',
+    cashToCollect: 150, cashCollected: false,
+    label: '₹100 paid online · collect ₹150 cash', blocksDelivery: false, blockReason: '',
+  },
+  ...rest(88.7, 26.5), deliveryAddress: { line1: '1 Mall Rd', coordinates: [88.71, 26.51] },
+};
+
+test('the dashboard shows the backend orderNumber, not a blank reference', { skip: !JSDOM }, async () => {
+  await withApp({ orders: [NAMED_ORDER], profile: PROFILE, earnings: EARNINGS, cash: { cashInHand: 0 }, payouts: {} }, async app => {
+  assert.deepEqual(app.errors, []);
+  const { doc } = app;
+  const card = doc.getElementById('order-' + NAMED_ORDER._id);
+  assert.ok(card, 'the order card must render');
+  assert.match(card.textContent, /NB100123/);
+  });
+});
+
+test('the COD badge shows the partial-COD balance, never the raw order total', { skip: !JSDOM }, async () => {
+  await withApp({ orders: [NAMED_ORDER], profile: PROFILE, earnings: EARNINGS, cash: { cashInHand: 0 }, payouts: {} }, async app => {
+  const { doc } = app;
+  const card = doc.getElementById('order-' + NAMED_ORDER._id);
+  assert.match(card.textContent, /Collect ₹150/);
+  assert.ok(!/Collect ₹250/.test(card.textContent), 'the order total must not be shown as cash to collect');
+  });
+});
+
+test('an unpaid COD advance disables the deliver button with the backend reason', { skip: !JSDOM }, async () => {
+  const blockedOrder = {
+    ...NAMED_ORDER, _id: 'bb'.repeat(12), riderStatus: 'out_for_delivery', status: 'out_for_delivery',
+    payment: {
+      ...NAMED_ORDER.payment, advancePaid: 0, advanceStatus: 'pending',
+      blocksDelivery: true, blockReason: 'The customer advance has not been paid; delivery cannot proceed.',
+    },
+  };
+  await withApp({ orders: [blockedOrder], profile: PROFILE, earnings: EARNINGS, cash: { cashInHand: 0 }, payouts: {} }, async app => {
+  const { doc } = app;
+  doc.querySelector(`[data-action^="otp"][data-id="${blockedOrder._id}"]`).click();
+  await new Promise(r => setTimeout(r, 100));
+  assert.equal(doc.getElementById('verifyOtp').disabled, true);
+  assert.match(doc.getElementById('otpMsg').textContent, /advance has not been paid/);
+  });
+});
+
+test('a double tap on accept sends exactly one status request', { skip: !JSDOM }, async () => {
+  const order = {
+    _id: 'cc'.repeat(12), riderStatus: 'assigned', status: 'assigned', orderNumber: 'NB100999',
+    paymentMethod: 'ONLINE', total: 300, riderEarning: 40,
+    ...rest(88.7, 26.5), deliveryAddress: { line1: '2 Fort Rd', coordinates: [88.72, 26.52] },
+  };
+  await withApp({ orders: [order], profile: PROFILE, earnings: EARNINGS, cash: { cashInHand: 0 }, payouts: {} }, async app => {
+  const { doc } = app;
+  const btn = doc.querySelector(`[data-action^="accept"][data-id="${order._id}"]`);
+  assert.ok(btn, 'the accept button must render');
+  btn.click();
+  btn.click();
+  await new Promise(r => setTimeout(r, 250));
+  const accepts = app.calls.filter(c => c.method === 'PUT' && c.path.endsWith(`/api/riders/orders/${order._id}/status`) && /"accepted"/.test(String(c.body)));
+  assert.equal(accepts.length, 1, 'the second tap must be ignored while the first is in flight');
   });
 });
