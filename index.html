@@ -347,7 +347,6 @@ img{max-width:100%}
     <p>Check the bag against the counter handover details before you leave the restaurant.</p>
     <div id="pickupSummary"></div>
     <div class="field" id="pickupCodeField" hidden><label for="pickupCodeInput">4-digit pickup code from the restaurant</label><input id="pickupCodeInput" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="1234"></div>
-    <div class="field"><label for="pickupPhotoInput">Package / bill photo (optional)</label><input id="pickupPhotoInput" type="file" accept="image/jpeg,image/png,image/webp"></div>
     <div id="pickupMsg" style="min-height:16px;color:var(--danger);font-size:13px;margin-top:8px"></div>
     <div class="sheetActions"><button class="btn" id="closePickup" type="button">Cancel</button><button class="btn primary" id="confirmPickup" type="button">Confirm pickup</button></div>
   </div>
@@ -419,7 +418,7 @@ if(!localStorage.getItem('riderToken')){location.href=LOGIN;return}
 const $=id=>document.getElementById(id);
 /* Brand mark: icon.png, with an inline vector fallback so the header never shows a broken image or a stray letter. */
 (function brandLogo(){const img=$('brandLogoImg'),box=$('brandLogo');if(!img||!box)return;const fallback=()=>{box.innerHTML='<svg viewBox="0 0 36 36" fill="none" stroke="#690D27" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14h17l-1.4 14H10.9L9.5 14z"/><path d="M13.5 14v-1.5a4.5 4.5 0 0 1 9 0V14"/></svg>'};img.addEventListener('error',fallback,{once:true});if(img.complete&&img.naturalWidth===0)fallback()})();
-let profile=null,orders=[],history=[],earnings=null,page=1,historyPage=1,pages=1,historyPages=1,filter='all',otpOrderId=null,issueOrderId=null,pickupOrderId=null,selectedIssue='',gpsWatch=null,riderPos=null,loading=false,historyLoading=false,earningsLoading=false,refreshTimer=null,ordersRequestSeq=0,period='today',onlineSince=null,cashState=null,payoutState=null,cooldownUntil=null,rejectionState=null,surgeState=null;
+let profile=null,orders=[],history=[],earnings=null,platformStatus=null,page=1,historyPage=1,pages=1,historyPages=1,filter='all',otpOrderId=null,issueOrderId=null,pickupOrderId=null,selectedIssue='',gpsWatch=null,riderPos=null,loading=false,historyLoading=false,earningsLoading=false,refreshTimer=null,ordersRequestSeq=0,period='today',onlineSince=null,cashState=null,payoutState=null,cooldownUntil=null,rejectionState=null,surgeState=null;
 /* Duplicate-submission guard shared by every status action (focus card, order
    list and offer sheet render the same action for the same order). */
 const guard=RL&&RL.createInFlightGuard?RL.createInFlightGuard():(()=>{const a=new Set();return{isBusy:k=>a.has(String(k)),async run(k,f){k=String(k);if(a.has(k))return{skipped:true};a.add(k);try{return{skipped:false,value:await f()}}finally{a.delete(k)}}}})();
@@ -487,7 +486,10 @@ function normalize(o){const r=o.restaurant&&typeof o.restaurant==='object'?o.res
 function statusLabel(s){return({assigned:'New assignment',accepted:'Accepted',reached_restaurant:'At restaurant',picked_up:'Picked up',out_for_delivery:'On the way',delivered:'Delivered',cancelled:'Cancelled'}[s]||s||'Unknown')}
 function actionFor(o){if(pickupGate(o).relevant&&!pickupGate(o).allowed)return null;return({assigned:{type:'accept',label:'Accept delivery'},accepted:{type:'status',next:'reached_restaurant',label:'Arrived at restaurant'},reached_restaurant:{type:'pickup',next:'picked_up',label:'Picked up'},picked_up:{type:'status',next:'out_for_delivery',label:'Start delivery'},out_for_delivery:{type:'otp',label:'Verify PIN & deliver'}}[o.riderStatus]||null)}
 function kitchenBadge(o){const k=String(o.status||'');if(!k||k==='cancelled')return k==='cancelled'?'<span class="badge red">Order cancelled</span>':'';const tone=['waiting_for_rider','assigned','otp_verified'].includes(k)?'amber':'grey';return `<span class="badge ${tone}">🍳 ${esc(kitchenLabel(k))}</span>`}
-function orderRef(o){return o.publicOrderId||o.shortId}
+/* The backend identifies an order to the rider by `orderNumber` (e.g. NB100123)
+ * and, when a shipment exists, `shipmentId` (e.g. SH500001). There is no
+ * publicOrderId/shortId field, so reading those left every reference blank. */
+function orderRef(o){return o.orderNumber||o.shipmentId||('#'+String(o.id||o._id||'').slice(-6).toUpperCase())}
 function isCOD(o){return String(o.paymentMethod||'').toLowerCase()==='cod'}
 function deliveryCoords(o){return coords(o.deliveryAddress)}
 function liveDistance(o){const d=deliveryCoords(o);return d&&riderPos?hav(riderPos.lat,riderPos.lng,d.lat,d.lng):null}
@@ -501,8 +503,8 @@ function etaRange(o){const t=tripDistance(o);if(t==null)return null;const lo=Mat
 const geofenceOf=o=>RL?RL.pickupGeofence(o,riderPos):(()=>{const from=RL?RL.restaurantCoordinates(o):null;return from&&riderPos?{known:true,inside:hav(riderPos.lat,riderPos.lng,from.lat,from.lng)*1000<=200,distance:Math.round(hav(riderPos.lat,riderPos.lng,from.lat,from.lng)*1000),radius:200,text:''}:{known:false,inside:false,distance:null,radius:200,text:''}})();
 const waitTimeOf=(o,now)=>RL?RL.waitTimeInfo(o,now):{active:false,text:'',note:'',compensationApplies:false,minutes:0};
 const kitchenReadyOf=(o,now)=>RL?RL.kitchenReadyInfo(o,now):{ready:o?.isFoodReady===true,text:'',etaText:''};
-const handoverOf=o=>RL?RL.pickupHandover(o):{code:'',display:'',requiresCode:false,cutlery:false,cutleryLabel:'',photoRequired:false};
-const paymentOf=o=>RL?RL.paymentDoorstep(o):{isCod:isCOD(o),amount:num(o?.total)||0,banner:'',confirmationLabel:'',requiresCashConfirmation:isCOD(o)};
+const handoverOf=o=>RL?RL.pickupHandover(o):{code:'',display:'',requiresCode:false,codeRequired:false,verified:false,cutlery:false,cutleryLabel:''};
+const paymentOf=o=>RL?RL.paymentDoorstep(o):{isCod:isCOD(o),amount:num(o?.total)||0,banner:'',confirmationLabel:'',requiresCashConfirmation:isCOD(o),blocksDelivery:false,blockReason:''};
 const breakdownOf=o=>RL?RL.earningBreakdown(o):null;
 
 
@@ -519,10 +521,11 @@ const pickCustomerTip=o=>RL?RL.pickCustomerTip(o):null;
 const offerEarnings=o=>RL?RL.offerEarnings(o):{lines:[{label:'Delivery earning',value:25,source:'policy'},{label:'Eatswada bonus',value:10,source:'policy'},{label:'Customer tip',value:0,source:'policy'}],sum:35,estimate:true};
 const weeklyIncentive=n=>RL?RL.weeklyIncentive(n):{deliveries:Math.max(0,Math.floor(Number(n)||0)),milestone:0,amount:0,next:10,remaining:10,progress:0};
 function countOf(block){if(RL){const n=RL.earningsOrderCount(block);if(n!==null)return n}return 0}
-/* The incentive ladder is a Monday–Sunday IST week. The earnings endpoint
- * exposes a rolling 7-day block, so unless the backend also returns explicit
- * week-window fields the progress is marked approximate rather than implied. */
-function incentiveIsExact(){const w=earnings?.thisWeek||{};return hasNum(w.weekDeliveries)||hasNum(w.completedDeliveries)||(w.weekStart!=null&&w.weekEnd!=null)}
+/* The backend computes the weekly incentive itself (₹50 per completed block of
+ * 10 deliveries in the current Asia/Kolkata week) and returns it as
+ * `weeklyIncentive` / `thisWeek.incentive`. That value is authoritative; the
+ * local ladder is only a labelled target when the backend omits it. */
+function backendIncentive(){return RL&&RL.backendWeeklyIncentive?RL.backendWeeklyIncentive(earnings||{}):{amount:null,source:'derived',deliveries:null}}
 
 /* ------------------------------------------------------------------ UI shell */
 function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),3200)}
@@ -642,7 +645,9 @@ function refreshShiftState(){
  const details=(profile&&profile.riderDetails)||{};
  rejectionState=RL&&RL.rejectionWarning?RL.rejectionWarning(details):null;
  cooldownUntil=details.cooldownUntil||null;
- surgeState=RL&&RL.rainSurgeInfo?RL.rainSurgeInfo(profile,activeOrder()||{}):null;
+ /* The platform public-status snapshot is the authoritative rain-surge source;
+    the order/profile payloads are only a fallback for a cached response. */
+ surgeState=RL&&RL.rainSurgeInfo?RL.rainSurgeInfo(platformStatus||profile,activeOrder()||{}):null;
 }
 function renderShiftBanners(){
  refreshShiftState();
@@ -673,7 +678,12 @@ async function loadCash(){
 }
 function codCash(){
  const details=(profile&&profile.riderDetails)||{};
- const cash=cashState&&hasNum(cashState.cashInHand)?num(cashState.cashInHand):0;
+ /* Prefer the dedicated cash endpoint, then the authoritative cashInHand the
+    rider profile already returns, and only then the on-device COD sum. */
+ const serverCash=cashState&&cashState.source==='server'&&hasNum(cashState.cashInHand)?num(cashState.cashInHand):null;
+ const profileCash=hasNum(details.cashInHand)?num(details.cashInHand):null;
+ const fallbackCash=cashState&&hasNum(cashState.cashInHand)?num(cashState.cashInHand):0;
+ const cash=serverCash!=null?serverCash:(profileCash!=null?profileCash:fallbackCash);
  const limit=cashState&&hasNum(cashState.codCashLimit)?num(cashState.codCashLimit):(hasNum(details.codCashLimit)?num(details.codCashLimit):null);
  return RL&&RL.codCashStatus?RL.codCashStatus(cash,limit):null;
 }
@@ -704,13 +714,13 @@ function renderPerOrderEarnings(){
 
 function renderSettlement(){
  const rowsEl=$('settlementRows');if(!rowsEl)return;
- const total=num(earnings?.totalEarnings)??num(earnings?.today?.earnings)??0;
+ const total=num(earnings?.allTime?.earnings)??num(earnings?.totalEarnings)??num(earnings?.today?.earnings)??0;
  const s=codCash()||{cash:0,limit:0};
  const payouts=payoutState&&Array.isArray(payoutState.payouts)?payoutState.payouts:[];
  const deposits=payoutState&&Array.isArray(payoutState.deposits)?payoutState.deposits:[];
  const summary=RL&&RL.settlementSummary?RL.settlementSummary({totalEarnings:total,cashInHand:s.cash,payouts,deposits}):{totalEarnings:total,cashInHand:s.cash,net:total-s.cash,tone:'ok',label:'—'};
  rowsEl.innerHTML=[
-  `<div class="row"><span class="rowLabel"><i class="brand"></i>Total Earnings</span><b>${money(summary.totalEarnings)}</b></div>`,
+  `<div class="row"><span class="rowLabel"><i class="brand"></i>Total Earnings (all time)</span><b>${money(summary.totalEarnings)}</b></div>`,
   `<div class="row"><span class="rowLabel"><i class="warn"></i>COD Cash Held</span><b>${money(summary.cashInHand)}</b></div>`,
  ].join('');
  const net=$('settlementNet');
@@ -761,7 +771,14 @@ function highlightOrder(id){if(!id)return;showView('homeView');filter='all';docu
 if('serviceWorker'in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='order-notification-click')highlightOrder(e.data.orderId)});
 window.addEventListener('eatswada:push-permission',e=>{notifState=e.detail?.state||'unknown';renderAlerts()});
 window.addEventListener('eatswada:push-received',e=>{const d=e.detail?.data||{};if(d.type==='rider_assignment'){loadOrders(true)}else if(d.type==='order_ready'||d.type==='ORDER_READY'){orderReadyAlert(d);loadOrders(true)}else if(d.orderId){loadOrders(true)}});
-window.addEventListener('eatswada:push-opened',e=>{const d=e.detail||{};if(d.orderId)highlightOrder(d.orderId);else refresh(false)});
+window.addEventListener('eatswada:push-opened',async e=>{const d=e.detail||{};if(!d.orderId){refresh(false);return}
+ /* A tap can arrive on a cold start or after the app was backgrounded, when the
+    order list is not loaded yet. Refresh first so the order exists before we
+    try to scroll to it; a failure must not throw out of the listener. */
+ const known=()=>orders.some(o=>String(o.id)===String(d.orderId))||history.some(o=>String(o.id)===String(d.orderId));
+ try{if(!known())await refresh(false)}catch{}
+ highlightOrder(d.orderId);
+ if(!known())toast('That delivery is no longer in your list — it may have been reassigned or completed.')});
 $('assignBarBtn').onclick=()=>{const o=orders.find(x=>x.riderStatus==='assigned');if(o)highlightOrder(o.id)};
 /* The first tap only unlocks audio and starts push setup. Asking for the OS
  * notification permission is left to a deliberate rider action (going online). */
@@ -827,7 +844,8 @@ function orderCard(o){
  const targetNav=targetCoords?navUrl(targetCoords):(customerStage?addressNav(o):null);
  const cd=o.riderStatus==='assigned'?assignmentSeconds(o):null;
  const chip=o.riderStatus==='assigned'?`<span class="badge amber" id="cd-${esc(o.id)}">${cd==null?'New':cd+'s left'}</span>`:`<span class="badge">${esc(statusLabel(o.riderStatus))}</span>`;
- const pay=isCOD(o)?`<span class="badge amber">💵 Collect ${money(o.total)}</span>`:'';
+ const payView=paymentOf(o);
+ const pay=payView.isCod?`<span class="badge amber">💵 Collect ${money(payView.amount)}</span>`:'';
  const gateNote=gate.relevant&&!gate.allowed?`<div class="issueMini"><b>Not ready yet</b>${esc(gate.reason)}</div>`:'';
  const contact=customerStage?c.phone:r.phone;
  const contactLabel=customerStage?'Call customer':'Call restaurant';
@@ -967,8 +985,18 @@ function addressNav(o){const c=deliveryCoords(o);return c?navUrl(c):`https://www
 /* ------------------------------------------------------------------ history */
 function renderHistory(){
  if(!history.length){$('history').innerHTML=emptyState({icon:'history',title:'No completed deliveries yet',body:'Delivered and cancelled orders appear here once the backend records them.'});return}
- $('history').innerHTML=history.map(o=>{const r=restaurant(o),cancel=o.status==='cancelled',earn=pickRiderEarning(o);
-  return `<div class="card"><div class="orderHead"><div><div class="orderNo">${esc(orderRef(o))}</div><div class="ship">${esc(r.name)}</div></div><span class="badge ${cancel?'red':''}">${cancel?'Cancelled':'Delivered'}</span></div><div class="historyRow"><div><b>${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}</b><small>${cancel?'No rider earning for a cancelled order':'Finalized rider earning'}</small></div>${cancel?'<span class="historyEarn pending">—</span>':(earn?`<span class="historyEarn">${money(earn.value)}</span>`:'<span class="historyEarn pending">Pending</span>')}</div>${o.deliveryIssue?.status==='reported'?`<div class="issueMini" style="margin:0 16px 14px"><b>Last issue</b>${esc(o.deliveryIssue.reason)}${o.deliveryIssue.note?' — '+esc(o.deliveryIssue.note):''}</div>`:''}</div>`}).join('');
+ $('history').innerHTML=history.map(o=>{
+  /* The backend history is only delivered or cancelled orders. A rider earning
+     exists once the rider actually delivered (riderStatus 'delivered'), so the
+     earning badge is keyed on that — an order cancelled after delivery still
+     shows its earning instead of being mislabelled as earning nothing. */
+  const delivered=o.riderStatus==='delivered';
+  const cancelled=!delivered&&o.status==='cancelled';
+  const earn=pickRiderEarning(o);
+  const badge=delivered?'<span class="badge">Delivered</span>':cancelled?'<span class="badge red">Cancelled</span>':'<span class="badge">Closed</span>';
+  const note=delivered?'Finalized rider earning':cancelled?'No rider earning for a cancelled order':'Closed without a rider earning';
+  const earnHtml=delivered?(earn?`<span class="historyEarn">${money(earn.value)}</span>`:'<span class="historyEarn pending">Pending</span>'):'<span class="historyEarn pending">—</span>';
+  return `<div class="card"><div class="orderHead"><div><div class="orderNo">${esc(orderRef(o))}</div><div class="ship">${esc(restaurant(o).name)}</div></div>${badge}</div><div class="historyRow"><div><b>${new Date(o.updatedAt||o.createdAt||Date.now()).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})}</b><small>${note}</small></div>${earnHtml}</div>${o.deliveryIssue?.status==='reported'?`<div class="issueMini" style="margin:0 16px 14px"><b>Last issue</b>${esc(o.deliveryIssue.reason)}${o.deliveryIssue.note?' — '+esc(o.deliveryIssue.note):''}</div>`:''}</div>`}).join('');
 }
 
 /* ------------------------------------------------------------------ earnings */
@@ -988,7 +1016,7 @@ function renderEarnings(){
  $('earnSub').textContent=`${countOf(cur)} ${countOf(cur)===1?'delivery':'deliveries'} completed`;
  renderBreakdown(cur);
  renderPerOrderEarnings();
- renderWeeklyIncentive(countOf(x.thisWeek),!incentiveIsExact());
+ renderWeeklyIncentive(countOf(x.thisWeek));
  renderChart();
 }
 function renderBreakdown(block){
@@ -1034,15 +1062,16 @@ function renderChart(){
  $('chartRange').textContent=`${days[0].date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} – ${days[6].date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;
 }
 
-function renderWeeklyIncentive(deliveries,approx){
+function renderWeeklyIncentive(deliveries){
  const w=weeklyIncentive(deliveries),n=w.deliveries;
  $('incentiveDeliveries').textContent=n;
- const disp=RL&&RL.incentiveDisplay?RL.incentiveDisplay(w,!approx,money):{amountText:money(w.amount),earnedText:money(w.amount)+' unlocked'};
+ const conf=backendIncentive();
+ const disp=RL&&RL.incentiveDisplay?RL.incentiveDisplay(w,conf.amount,money):{amountText:money(w.amount),earnedText:money(w.amount)+' target',approximate:true};
  $('incentiveAmount').textContent=disp.amountText;
  $('incentiveEarned').textContent=disp.earnedText;
  $('incentiveFill').style.width=w.progress+'%';
  $('incentiveProgress').setAttribute('aria-valuenow',String(Math.min(n,30)));
- $('incentiveMessage').textContent=w.next===null?'Maximum weekly incentive unlocked — great work!':`Complete ${w.remaining} more ${w.remaining===1?'delivery':'deliveries'} to unlock ${money(w.next===10?50:w.next===20?100:150)}${w.next===20||w.next===30?' total':''}.${approx?' (approximate)':''}`;
+ $('incentiveMessage').textContent=w.next===null?'Maximum weekly incentive unlocked — great work!':`Complete ${w.remaining} more ${w.remaining===1?'delivery':'deliveries'} to reach ${money(w.next===10?50:w.next===20?100:150)}${w.next===20||w.next===30?' total':''}.${disp.confirmed?'':' (approximate — confirmed by Eatswada at week close)'}`;
 }
 
 
@@ -1185,25 +1214,26 @@ function geofenceBlocked(id,message){
 }
 
 /* ---- counter handover (picked_up) ------------------------------------------
- * Shows the 4-digit pickup ID and any cutlery request, and lets the rider
- * confirm the code and attach an optional package/bill photo before the
- * picked_up status is sent with { pickupCode, pickupPhotoUrl }. */
+ * Shows the counter code state and any cutlery request. When the order carries
+ * a pickup code the rider first POSTs it to the real verification endpoint
+ * (verify-pickup-code) so a wrong code is rejected server-side, then advances
+ * the status with the plain { status: 'picked_up' } transition. */
 function openPickup(id){
  const o=orders.find(x=>x.id===id)||history.find(x=>x.id===id);if(!o)return;
  pickupOrderId=id;
  const h=handoverOf(o),gate=pickupGate(o);
  $('pickupSummary').innerHTML=`<div class="handover">
    <div class="handoverRow"><small>Order</small><b>${esc(orderRef(o))}</b></div>
-   ${h.display?`<div class="handoverRow big"><small>Pickup ID at counter</small><b class="pickupCode">${esc(h.display)}</b></div>`:`<div class="handoverRow"><small>Pickup ID</small><b>Not provided</b></div>`}
+   ${h.display?`<div class="handoverRow big"><small>Pickup ID at counter</small><b class="pickupCode">${esc(h.display)}</b></div>`:''}
+   ${h.requiresCode?`<div class="handoverRow"><small>Counter code</small><b>${h.verified?'✅ Verified':'Ask the restaurant for the 4-digit code'}</b></div>`:`<div class="handoverRow"><small>Pickup ID</small><b>Not required for this order</b></div>`}
    ${h.cutlery?`<div class="handoverRow"><small>Cutlery</small><b class="cutleryBadge">🍴 ${esc(h.cutleryLabel)}</b></div>`:''}
    <div class="handoverRow"><small>Items</small><b>${esc((o.items||[]).map(i=>(i.name||i.title||'Item')+' ×'+(i.quantity||1)).join(', ')||'—')}</b></div>
   </div>${gate.relevant&&!gate.allowed?`<div class="issueMini" style="margin:12px 0 0"><b>Not ready yet</b>${esc(gate.reason)}</div>`:''}`;
- $('pickupCodeField').hidden=!h.requiresCode;
+ $('pickupCodeField').hidden=!h.requiresCode||h.verified;
  $('pickupCodeInput').value='';
- $('pickupPhotoInput').value='';
  $('pickupMsg').textContent='';
  $('pickupModal').classList.add('show');
- if(h.requiresCode)$('pickupCodeInput').focus();
+ if(h.requiresCode&&!h.verified)$('pickupCodeInput').focus();
 }
 $('closePickup').onclick=()=>{$('pickupModal').classList.remove('show');pickupOrderId=null};
 $('confirmPickup').onclick=async()=>{
@@ -1213,28 +1243,22 @@ $('confirmPickup').onclick=async()=>{
  const msg=$('pickupMsg');
  if(!gate.allowed){msg.textContent=gate.reason||'Pickup is not available yet.';return}
  const code=$('pickupCodeInput').value.replace(/\D/g,'').slice(0,4);
- if(h.requiresCode&&!((RL&&RL.isValidPickupCode)?RL.isValidPickupCode(code):/^\d{4}$/.test(code))){msg.textContent='Enter the 4-digit pickup code from the restaurant.';return}
+ const needsCode=h.requiresCode&&!h.verified;
+ if(needsCode&&!((RL&&RL.isValidPickupCode)?RL.isValidPickupCode(code):/^\d{4}$/.test(code))){msg.textContent='Enter the 4-digit pickup code the restaurant shows.';return}
  const b=$('confirmPickup');b.disabled=true;b.textContent='Confirming…';msg.textContent='';
  try{
-   const photoUrl=await uploadPickupPhoto($('pickupPhotoInput').files?.[0]);
-   const body={status:'picked_up'};
-   if(code)body.pickupCode=code;
-   if(photoUrl)body.pickupPhotoUrl=photoUrl;
-   await lockedCall(id,()=>api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}));
+   await guard.run(id,async()=>{
+     /* The counter code is verified against its hash by the backend
+        (POST /verify-pickup-code); the status PUT does not accept it. Verifying
+        first means a wrong code is rejected before we try to collect the bag. */
+     if(needsCode)await api('/api/riders/orders/'+id+'/verify-pickup-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pickupCode:code})});
+     await api('/api/riders/orders/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'picked_up'})});
+   });
    $('pickupModal').classList.remove('show');pickupOrderId=null;
    toast('Pickup confirmed');await Promise.all([loadOrders(true),loadEarnings()]);
  }catch(e){msg.textContent=e.message}
  finally{b.disabled=false;b.textContent='Confirm pickup';startCooldown(id);render()}
 };
-/* The photo is optional: a failed upload must never block the pickup. */
-async function uploadPickupPhoto(file){
- if(!file)return '';
- try{
-  const fd=new FormData();fd.append('photo',file);
-  const d=await api('/api/riders/orders/'+pickupOrderId+'/pickup-photo',{method:'POST',body:fd});
-  return (d&&(d.url||d.data?.url||d.data?.pickupPhotoUrl))||'';
- }catch{toast('Photo upload skipped — pickup will still be confirmed.');return ''}
-}
 /* Disable every action button for this order (the focus card and the list card
    both render it) until the request settles. */
 function setOrderButtonsBusy(id,clicked){
@@ -1248,16 +1272,22 @@ function openOtp(id){
  const banner=$('otpPayBanner');
  if(o){banner.hidden=false;banner.textContent=pay.banner;banner.classList.toggle('cod',pay.isCod);banner.classList.toggle('prepaid',!pay.isCod)}
  else{banner.hidden=true;banner.textContent=''}
+ /* The backend refuses a delivery while a required COD advance is unpaid
+    (orderPaymentView.blocksDelivery). Show the reason and disable the button so
+    the rider does not send a call that is guaranteed to 402. */
+ const blocked=pay.blocksDelivery;
  /* A COD delivery cannot be completed until the rider confirms the cash was
     collected. Prepaid (or unspecified) orders never show this toggle, so the
     existing flows and tests are unchanged. */
  const wrap=$('codConfirmWrap'),box=$('codConfirm');
- if(pay.requiresCashConfirmation){wrap.hidden=false;box.checked=false;$('codConfirmLabel').textContent=pay.confirmationLabel}
+ if(pay.requiresCashConfirmation&&!blocked){wrap.hidden=false;box.checked=false;$('codConfirmLabel').textContent=pay.confirmationLabel}
  else{wrap.hidden=true;box.checked=false;$('codConfirmLabel').textContent=''}
- if(o&&isCOD(o)){$('otpMsg').textContent='💵 Collect '+money(pay.amount)+' cash before confirming.';$('otpMsg').style.color='var(--warn)'}
+ const btn=$('verifyOtp');if(btn)btn.disabled=blocked;
+ if(blocked){$('otpMsg').textContent='⛔ '+pay.blockReason;$('otpMsg').style.color='var(--danger)'}
+ else if(pay.isCod){$('otpMsg').textContent='💵 Collect '+money(pay.amount)+' cash before confirming.';$('otpMsg').style.color='var(--warn)'}
  else{$('otpMsg').textContent='';$('otpMsg').style.color=''}
- if(verifiedOtp.has(String(id))){$('otpMsg').textContent='PIN already accepted. Tap “Verify PIN” to finish the delivery.';$('otpMsg').style.color='var(--warn)'}
- $('otpModal').classList.add('show');['o0','o1','o2','o3'].forEach(x=>$(x).value='');$('o0').focus();
+ if(!blocked&&verifiedOtp.has(String(id))){$('otpMsg').textContent='PIN already accepted. Tap “Verify PIN” to finish the delivery.';$('otpMsg').style.color='var(--warn)'}
+ $('otpModal').classList.add('show');['o0','o1','o2','o3'].forEach(x=>$(x).value='');if(!blocked)$('o0').focus();
 }
 $('closeOtp').onclick=()=>{$('otpModal').classList.remove('show');otpOrderId=null};
 ['o0','o1','o2','o3'].forEach((id,i)=>$(id).addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,1);if(e.target.value&&i<3)$('o'+(i+1)).focus()}));
@@ -1352,6 +1382,15 @@ async function loadEarnings(){
  catch{toast('Could not load earnings. Try refreshing.')}
  finally{earningsLoading=false}
 }
+/* GET /api/platform/public-status is a customer-safe, no-auth snapshot. It is the
+ * authoritative source for the live rain-surge flag (isRainSurgeActive) that the
+ * backend actually applies to rider pay. Loaded once per refresh; a failure just
+ * leaves the surge pill hidden rather than showing a stale guess. */
+async function loadPlatformStatus(){
+ try{const d=await api('/api/platform/public-status');platformStatus=d.data||null}
+ catch{platformStatus=null}
+ renderShiftBanners();
+}
 function renderHeroProgress(){
  const today=earnings?.today||{};
  const done=countOf(today);
@@ -1410,7 +1449,7 @@ $('earningPolicyNote').textContent='Each completed delivery earns a delivery fee
 
 updateGpsUI();
 renderHeroProgress();
-refresh(true).then(()=>{const id=new URLSearchParams(location.search).get('order');if(id)highlightOrder(id);initPush();resumeBackground();refreshNotifState()});
+refresh(true).then(()=>{const id=new URLSearchParams(location.search).get('order');if(id)highlightOrder(id);initPush();resumeBackground();refreshNotifState();loadPlatformStatus()});
 startPolling();
 })();
 

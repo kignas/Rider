@@ -313,6 +313,22 @@
     return hit ? hit.value : null;
   }
 
+  /* The backend already computes the weekly incentive (₹50 per completed block
+   * of 10 deliveries in the current Asia/Kolkata week) and returns it as
+   * `weeklyIncentive` and `thisWeek.incentive`. When it does, that number is
+   * authoritative and is shown as-is. Only when the backend does not send it do
+   * we fall back to the documented ladder — and then it is labelled approximate
+   * by the caller. Returns { amount, source, deliveries }. */
+  function backendWeeklyIncentive(earnings) {
+    const e = earnings || {};
+    const top = firstNumber(e, ['weeklyIncentive']);
+    if (top) return { amount: top.value, source: 'backend', deliveries: earningsOrderCount(e.thisWeek) };
+    const week = e.thisWeek || {};
+    const inner = firstNumber(week, ['incentive', 'weeklyIncentive', 'incentiveEarnings']);
+    if (inner) return { amount: inner.value, source: 'backend', deliveries: earningsOrderCount(week) };
+    return { amount: null, source: 'derived', deliveries: earningsOrderCount(week) };
+  }
+
 
   /* ---- Money formatting -----------------------------------------------------
    * One shared formatter so every ₹ figure the rider sees is written the same
@@ -545,8 +561,11 @@
     return { ready: false, etaText: '', remainingMs: null, text: '🍳 Kitchen is preparing order' };
   }
 
-  /* What the rider must check at the counter: the 4-digit pickup ID, any
-   * cutlery request and whether a handover photo is expected. */
+  /* What the rider must check at the counter: the 4-digit pickup code the
+   * restaurant shows, any cutlery request and whether the code was already
+   * verified. The backend stores pickupCodeHash as select:false, so the code is
+   * never returned to the app — the rider types what the restaurant shows and
+   * POST /api/riders/orders/:id/verify-pickup-code checks it server-side. */
   function pickupHandover(order) {
     const o = order || {};
     const code = String(o.pickupCode || o.pickupOtp || o.pickupPin || o.handoverCode || '').trim();
@@ -555,9 +574,10 @@
       code,
       display: code ? '#' + code : '',
       requiresCode: !!code || o.pickupCodeRequired === true,
+      codeRequired: o.pickupCodeRequired === true,
+      verified: o.pickupCodeVerifiedAt != null,
       cutlery,
       cutleryLabel: cutlery ? 'Send cutlery' : '',
-      photoRequired: o.pickupPhotoRequired === true,
     };
   }
 
@@ -566,9 +586,40 @@
   }
 
 
-  /* ---- Doorstep payment (UPI vs cash on delivery) --------------------------- */
+  /* ---- Doorstep payment (UPI vs cash on delivery) ---------------------------
+   * The backend attaches a normalized `payment` view (services/orderPaymentView
+   * .js) to every rider order. When present it is authoritative — it is the only
+   * source that knows about a partial-COD advance, and it is what the customer
+   * sees. The local derivation is kept only as a fallback for a stale cached
+   * order object that predates the view. */
   function paymentDoorstep(order) {
     const o = order || {};
+    const view = o.payment && typeof o.payment === 'object' ? o.payment : null;
+    if (view) {
+      const isCod = view.isCod === true;
+      const cashToCollect = Number(view.cashToCollect) || 0;
+      const label = String(view.label || '');
+      const amount = isCod ? cashToCollect : (Number(view.orderTotal) || 0);
+      return {
+        isCod,
+        method: String(view.method || '').toUpperCase() || (isCod ? 'COD' : 'UPI'),
+        amount,
+        orderTotal: Number(view.orderTotal) || 0,
+        advanceRequired: Number(view.advanceRequired) || 0,
+        advancePaid: Number(view.advancePaid) || 0,
+        isPartialCod: view.isPartialCod === true,
+        cashCollected: view.cashCollected === true,
+        blocksDelivery: view.blocksDelivery === true,
+        blockReason: String(view.blockReason || ''),
+        banner: isCod
+          ? (label ? '💵 ' + label : '💵 CASH ON DELIVERY: COLLECT ' + rupees(amount, 2) + ' FROM CUSTOMER')
+          : '✅ PREPAID ONLINE — DO NOT COLLECT CASH',
+        confirmationLabel: isCod ? 'I have collected ' + rupees(amount, 2) + ' in cash from the customer' : '',
+        requiresCashConfirmation: isCod,
+        source: 'backend',
+      };
+    }
+
     const method = String(o.paymentMethod || '').trim().toUpperCase();
     const cod = method === 'COD' || method === 'CASH' || o.isCod === true;
     const hit = firstNumber(o, ORDER_TOTAL_FIELDS);
@@ -577,11 +628,19 @@
       isCod: cod,
       method: method || 'UNKNOWN',
       amount,
+      orderTotal: amount,
+      advanceRequired: 0,
+      advancePaid: 0,
+      isPartialCod: false,
+      cashCollected: false,
+      blocksDelivery: false,
+      blockReason: '',
       banner: cod
         ? '💵 CASH ON DELIVERY: COLLECT ' + rupees(amount, 2) + ' FROM CUSTOMER'
         : '✅ PREPAID ONLINE — DO NOT COLLECT CASH',
       confirmationLabel: cod ? 'I have collected ' + rupees(amount, 2) + ' in cash from the customer' : '',
       requiresCashConfirmation: cod,
+      source: 'local',
     };
   }
 
@@ -594,21 +653,34 @@
     wait: ['waitTimePay', 'restaurantWaitPay', 'waitingPay', 'waitTimeEarning', 'waitCompensation'],
   };
 
-  /* Component lines for one order. A component the backend did not send stays
-   * null (rendered as "—"); nothing is filled in from a policy here. */
+  /* Component lines for one order. The backend freezes the split on the order
+   * as `riderEarningBreakdown` = { basePay, distancePay, rainSurgeBonus,
+   * waitTimePay, tip, total } (see models/Order.js + riderEarningService.js), so
+   * that nested object is read first and is authoritative. Flat aliases are kept
+   * only as a fallback for older payloads. A component the backend did not send
+   * stays null (rendered as "—"); nothing is filled in from a policy here. */
   function earningBreakdown(order) {
     const o = order || {};
-    const pick = fields => { const hit = firstNumber(o, fields); return hit ? hit.value : null; };
+    const frozen = o.riderEarningBreakdown && typeof o.riderEarningBreakdown === 'object' ? o.riderEarningBreakdown : null;
+    const pick = (fields, frozenKey) => {
+      if (frozen && frozenKey) {
+        const raw = frozen[frozenKey];
+        if (raw !== null && raw !== undefined && raw !== '' && Number.isFinite(Number(raw))) return Number(raw);
+      }
+      const hit = firstNumber(o, fields);
+      return hit ? hit.value : null;
+    };
+    const tipFromFrozen = frozen && Number.isFinite(Number(frozen.tip)) ? Number(frozen.tip) : null;
     const tipHit = pickCustomerTip(o);
     const waitHit = firstNumber(o, ['riderWaitTimeMinutes', 'waitTimeMinutes', 'restaurantWaitMinutes']);
     const waitMinutes = waitHit ? waitHit.value : null;
     const totalHit = pickRiderEarning(o);
     const lines = [
-      { id: 'base', label: 'Base Delivery Pay', value: pick(EARNING_COMPONENT_FIELDS.base), hint: '' },
-      { id: 'distance', label: 'Distance Pay', value: pick(EARNING_COMPONENT_FIELDS.distance), hint: '' },
-      { id: 'surge', label: 'Rain / Surge Bonus', value: pick(EARNING_COMPONENT_FIELDS.surge), hint: '' },
-      { id: 'wait', label: 'Restaurant Wait-Time Pay', value: pick(EARNING_COMPONENT_FIELDS.wait), hint: waitMinutes == null ? '' : waitMinutes + ' mins waited' },
-      { id: 'tip', label: 'Customer Tip (100%)', value: tipHit ? tipHit.value : null, hint: '' },
+      { id: 'base', label: 'Base Delivery Pay', value: pick(EARNING_COMPONENT_FIELDS.base, 'basePay'), hint: '' },
+      { id: 'distance', label: 'Distance Pay', value: pick(EARNING_COMPONENT_FIELDS.distance, 'distancePay'), hint: '' },
+      { id: 'surge', label: 'Rain / Surge Bonus', value: pick(EARNING_COMPONENT_FIELDS.surge, 'rainSurgeBonus'), hint: '' },
+      { id: 'wait', label: 'Restaurant Wait-Time Pay', value: pick(EARNING_COMPONENT_FIELDS.wait, 'waitTimePay'), hint: waitMinutes == null ? '' : waitMinutes + ' mins waited' },
+      { id: 'tip', label: 'Customer Tip (100%)', value: tipFromFrozen != null ? tipFromFrozen : (tipHit ? tipHit.value : null), hint: '' },
     ];
     const known = lines.filter(l => l.value != null);
     const sum = known.reduce((s, l) => s + l.value, 0);
@@ -722,16 +794,28 @@
     return out;
   }
 
-  /* Weekly-incentive wording. The ladder is a documented policy, but the
-   * earnings API returns a rolling 7-day block unless it also supplies the
-   * week window; in that case no amount is presented as "unlocked". */
-  function incentiveDisplay(incentive, exact, formatMoney) {
+  /* Weekly-incentive wording. `backendAmount` comes from GET /api/riders/earnings
+   * (weeklyIncentive) and is authoritative, so it is shown as confirmed money.
+   * Without it the documented ladder is shown as a target and clearly marked
+   * approximate — it is never presented as money already unlocked. */
+  function incentiveDisplay(incentive, backendAmount, formatMoney) {
     const w = incentive || weeklyIncentive(0);
     const fmt = typeof formatMoney === 'function' ? formatMoney : (n => '₹' + n);
-    if (!exact) {
-      return { amountText: '—', earnedText: 'Progress is approximate', approximate: true };
+    if (backendAmount != null && Number.isFinite(Number(backendAmount))) {
+      const amount = Number(backendAmount);
+      return {
+        amountText: fmt(amount),
+        earnedText: amount > 0 ? fmt(amount) + ' earned this week — confirmed by Eatswada' : 'No incentive earned yet this week',
+        approximate: false,
+        confirmed: true,
+      };
     }
-    return { amountText: fmt(w.amount), earnedText: w.amount > 0 ? fmt(w.amount) + ' reached — confirmed by Eatswada' : 'Not reached yet', approximate: false };
+    return {
+      amountText: fmt(w.amount),
+      earnedText: 'Target: ' + fmt(w.amount) + ' at ' + (w.milestone || 10) + ' deliveries — approximate',
+      approximate: true,
+      confirmed: false,
+    };
   }
 
   return {
@@ -776,6 +860,7 @@
     pickCustomerTip,
     offerEarnings,
     weeklyIncentive,
+    backendWeeklyIncentive,
     earningsOrderCount,
     rupees,
     rainSurgeInfo,
