@@ -341,6 +341,14 @@
   }
 
 
+  /* Same shape as the dashboard's money(): Indian grouping, no forced trailing
+   * zeros, so every ₹ figure the rider sees is written identically. */
+  function moneyText(value) {
+    const v = Number(value);
+    const safe = Number.isFinite(v) ? v : 0;
+    return '₹' + safe.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+
   /* ---- Surge, rejection cooldown and the COD cash ceiling -------------------
    * These are dispatch policies the backend owns. The app only presents the
    * values it was actually given and never invents a bonus or a limit. */
@@ -818,6 +826,422 @@
     };
   }
 
+
+  /* ========================================================================
+   * Route, guaranteed payout, expenses and the settlement ledger.
+   *
+   * The backend is the single source of truth for distances, ETAs, payouts,
+   * fuel/maintenance and net earnings. Nothing in this section computes those
+   * from raw coordinates or a local formula: every function only *reads* the
+   * value the backend returned and formats it. When a field is absent the
+   * result carries `null` (the page renders an honest "unavailable"), never a
+   * fabricated number. This is what keeps the rider app from inventing money.
+   * ====================================================================== */
+
+  /* Money in paise, integer math only, so there is no float drift. */
+  function formatPaise(paise) {
+    const n = Math.round(Number(paise) || 0);
+    const negative = n < 0;
+    const abs = Math.abs(n);
+    const major = Math.floor(abs / 100);
+    const minor = abs % 100;
+    const grouped = major.toLocaleString('en-IN');
+    const body = minor ? grouped + '.' + String(minor).padStart(2, '0') : grouped;
+    return '₹' + (negative ? '-' : '') + body;
+  }
+
+  function paiseToRupees(paise) {
+    const n = optionalNumber(paise);
+    return n == null ? null : Math.round(n) / 100;
+  }
+
+  /* Distances: km, at most one decimal unless the backend explicitly supplies
+   * a precision. A missing value returns null (the caller shows "unavailable"). */
+  function formatDistance(km, precision) {
+    const n = optionalNumber(km);
+    if (n == null || n < 0) return null;
+    const raw = Number(precision);
+    const d = Number.isFinite(raw) ? Math.max(0, Math.min(2, Math.floor(raw))) : 1;
+    return n.toFixed(d) + ' km';
+  }
+
+  /* Times: minutes, rolled up to hours only past 60. */
+  function formatMinutes(minutes) {
+    const n = optionalNumber(minutes);
+    if (n == null || n < 0) return null;
+    const m = Math.round(n);
+    if (m < 60) return m + ' min';
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r ? h + ' h ' + r + ' min' : h + ' h';
+  }
+
+  /* Rejects null/''/undefined before Number(), because Number(null) is 0 and
+   * would turn a missing money field into a real ₹0. */
+  function optionalNumber(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /* ---- Route info (backend route-distance service) -------------------------
+   * The service is assumed to attach `route.{pickup,delivery,total}` with
+   * distanceKm/durationMinutes (OQ2). Flat aliases are read as a fallback.
+   * `route.available === false` (or routeEstimateUnavailable) means the service
+   * could not produce a route — the page must say so and never block the rider
+   * with a fake number. Nothing here sums the legs: the total is only shown
+   * when the backend returned it. */
+  function routeLeg(order, nestedName, flatDistance, flatDuration) {
+    const o = order || {};
+    const route = o.route && typeof o.route === 'object' ? o.route : null;
+    const nested = route && route[nestedName] && typeof route[nestedName] === 'object' ? route[nestedName] : null;
+    let distanceKm = null;
+    let durationMinutes = null;
+    if (nested) {
+      distanceKm = optionalNumber(nested.distanceKm);
+      if (distanceKm == null) distanceKm = optionalNumber(nested.distance);
+      durationMinutes = optionalNumber(nested.durationMinutes);
+      if (durationMinutes == null) durationMinutes = optionalNumber(nested.etaMinutes);
+      if (durationMinutes == null) durationMinutes = optionalNumber(nested.duration);
+    }
+    if (distanceKm == null) { const hit = firstNumber(o, flatDistance); if (hit) distanceKm = hit.value; }
+    if (durationMinutes == null) { const hit = firstNumber(o, flatDuration); if (hit) durationMinutes = hit.value; }
+    return {
+      distanceKm,
+      durationMinutes,
+      distanceText: formatDistance(distanceKm),
+      durationText: formatMinutes(durationMinutes),
+      available: distanceKm != null || durationMinutes != null,
+    };
+  }
+
+  function routeInfo(order) {
+    const o = order || {};
+    const route = o.route && typeof o.route === 'object' ? o.route : null;
+    const unavailable = o.routeEstimateUnavailable === true || (route ? route.available === false : false);
+    return {
+      unavailable,
+      pickup: routeLeg(o, 'pickup', ['pickupDistanceKm', 'pickupDistance', 'riderToRestaurantKm', 'distanceToRestaurantKm'], ['pickupEtaMinutes', 'pickupDurationMinutes', 'pickupEta']),
+      delivery: routeLeg(o, 'delivery', ['deliveryDistanceKm', 'deliveryDistance', 'restaurantToCustomerKm'], ['deliveryEtaMinutes', 'deliveryDurationMinutes', 'deliveryEta']),
+      total: routeLeg(o, 'total', ['totalDistanceKm', 'tripDistanceKm'], ['totalEtaMinutes', 'tripDurationMinutes', 'totalDurationMinutes', 'totalEta']),
+    };
+  }
+
+  /* ---- Guaranteed payout (Dynamic Rider Payout Engine) ---------------------
+   * A guaranteed figure is one the backend has committed to. An estimate is
+   * labelled as such and is never presented as the payout. The app must not
+   * derive either from the order total or a local fee formula. */
+  function payoutComponents(order) {
+    const o = order || {};
+    const q = o.payoutQuote && typeof o.payoutQuote === 'object' ? o.payoutQuote : null;
+    const g = o.payoutGuarantee && typeof o.payoutGuarantee === 'object' ? o.payoutGuarantee : null;
+    const nested = (q && q.components && typeof q.components === 'object') ? q.components
+      : ((g && g.components && typeof g.components === 'object') ? g.components : null);
+    const pick = (nestedKey, fields) => {
+      if (nested) {
+        const v = optionalNumber(nested[nestedKey]);
+        if (v != null) return v;
+      }
+      const hit = firstNumber(o, fields);
+      return hit ? hit.value : null;
+    };
+    const defs = [
+      ['pickup', 'Pickup compensation', ['pickupPay', 'pickupCompensation', 'pickupFee']],
+      ['delivery', 'Delivery compensation', ['deliveryPay', 'deliveryCompensation', 'deliveryFee']],
+      ['repositioning', 'Repositioning allowance', ['repositioningPay', 'repositioningCompensation', 'repositioningAllowance']],
+      ['waiting', 'Waiting compensation', ['waitingCompensation', 'waitCompensation', 'waitingPay']],
+      ['peakHour', 'Peak-hour allowance', ['peakHourBonus', 'peakHourPay', 'peakBonus']],
+      ['remoteZone', 'Remote-zone allowance', ['remoteZoneBonus', 'remoteZoneAllowance', 'zoneBonus']],
+    ];
+    const lines = defs
+      .map(([id, label, fields]) => ({ id, label, value: pick(id, fields) }))
+      .filter(l => l.value != null)
+      .map(l => ({ id: l.id, label: l.label, value: l.value, valueText: moneyText(l.value) }));
+    return { lines, hasAny: lines.length > 0 };
+  }
+
+  function payoutGuarantee(order) {
+    const o = order || {};
+    const q = o.payoutQuote && typeof o.payoutQuote === 'object' ? o.payoutQuote : null;
+    const g = o.payoutGuarantee && typeof o.payoutGuarantee === 'object' ? o.payoutGuarantee : null;
+
+    let amount = null;
+    let guaranteed = false;
+    let source = null;
+
+    const guaranteedCandidates = [
+      optionalNumber(o.guaranteedPayout),
+      optionalNumber(o.guaranteedEarning),
+      g ? optionalNumber(g.guaranteed) : null,
+      g ? optionalNumber(g.amount) : null,
+      g ? optionalNumber(g.total) : null,
+      q ? optionalNumber(q.guaranteed) : null,
+      q ? optionalNumber(q.guaranteedPayout) : null,
+    ];
+    const firstGuaranteed = guaranteedCandidates.find(v => v != null);
+    if (firstGuaranteed != null) {
+      amount = firstGuaranteed;
+      guaranteed = true;
+      source = 'guaranteed';
+    } else {
+      const estimatedCandidates = [
+        optionalNumber(o.estimatedPayout),
+        q ? optionalNumber(q.estimated) : null,
+        q ? optionalNumber(q.estimatedPayout) : null,
+        q ? optionalNumber(q.amount) : null,
+        g ? optionalNumber(g.estimated) : null,
+      ];
+      const firstEstimated = estimatedCandidates.find(v => v != null);
+      if (firstEstimated != null) {
+        amount = firstEstimated;
+        guaranteed = false;
+        source = 'estimated';
+      }
+    }
+
+    const confirmedCandidates = [
+      q ? optionalNumber(q.confirmed) : null,
+      q ? optionalNumber(q.confirmedPayout) : null,
+      g ? optionalNumber(g.confirmed) : null,
+      g ? optionalNumber(g.confirmedPayout) : null,
+      optionalNumber(o.confirmedPayout),
+      optionalNumber(o.confirmedEarning),
+    ];
+    const confirmed = confirmedCandidates.find(v => v != null) ?? null;
+
+    const components = payoutComponents(o);
+    return {
+      amount,
+      guaranteed,
+      source,
+      confirmed,
+      components,
+      hasQuote: amount != null,
+      hasConfirmed: confirmed != null,
+      amountText: amount == null ? null : moneyText(amount),
+      confirmedText: confirmed == null ? null : moneyText(confirmed),
+    };
+  }
+
+  /* The invariant: once accepted, the confirmed payout may rise but must never
+   * fall below the offered guarantee. A decrease is surfaced as an error state
+   * (the page shows it and reports it) and is never silently displayed. Money
+   * is compared in paise so there is no float drift. */
+  function payoutReconciliation(offered, confirmed) {
+    const off = optionalNumber(offered);
+    const conf = optionalNumber(confirmed);
+    if (conf == null) {
+      return { known: false, state: 'unknown', offered: off, confirmed: null, delta: null, deltaText: null, message: '' };
+    }
+    if (off == null) {
+      return { known: true, state: 'confirmed', offered: null, confirmed: conf, delta: null, deltaText: null, message: 'Guaranteed payout confirmed at ' + moneyText(conf) + '.' };
+    }
+    const deltaPaise = Math.round(conf * 100) - Math.round(off * 100);
+    if (deltaPaise < 0) {
+      return {
+        known: true, state: 'decrease', offered: off, confirmed: conf,
+        delta: deltaPaise / 100, deltaText: formatPaise(Math.abs(deltaPaise)),
+        message: 'The confirmed payout is lower than the guaranteed offer. This must not happen — it has been flagged for Eatswada support and is not applied silently.',
+      };
+    }
+    if (deltaPaise > 0) {
+      return {
+        known: true, state: 'increase', offered: off, confirmed: conf,
+        delta: deltaPaise / 100, deltaText: formatPaise(deltaPaise),
+        message: 'Payout increased by ' + formatPaise(deltaPaise) + ' — now ' + moneyText(conf) + '.',
+      };
+    }
+    return { known: true, state: 'same', offered: off, confirmed: conf, delta: 0, deltaText: null, message: 'Guaranteed payout confirmed at ' + moneyText(conf) + '.' };
+  }
+
+  /* ---- Offer expiry (authoritative) ----------------------------------------
+   * The countdown uses the backend's expiry when it supplies one; the page
+   * still treats a late Accept as "no longer available" from the server. */
+  function offerExpiry(order, now) {
+    const o = order || {};
+    const at = Date.parse(o.offerExpiresAt || o.assignmentExpiresAt || o.expiresAt);
+    if (!Number.isFinite(at)) return { known: false, ms: null, seconds: 0, expired: false, text: '' };
+    const t = now == null ? Date.now() : now;
+    const ms = at - t;
+    const expired = ms <= 0;
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    return { known: true, ms, seconds: total, expired, text: expired ? 'Offer expired' : 'Expires in ' + total + 's' };
+  }
+
+  /* One call the offer card makes, so the page never composes its own numbers. */
+  function offerDetails(order, now) {
+    const o = order || {};
+    const route = routeInfo(o);
+    return {
+      payout: payoutGuarantee(o),
+      route,
+      expiry: offerExpiry(o, now),
+      routeUnavailable: route.unavailable,
+      tip: pickCustomerTip(o),
+    };
+  }
+
+  /* ---- Waiting compensation (backend decides eligibility and amount) ------- */
+  function waitingCompensationInfo(order, now) {
+    const o = order || {};
+    const w = waitTimeInfo(o, now);
+    const hit = firstNumber(o, ['waitingCompensation', 'waitCompensation', 'waitTimeCompensation', 'waitingEarnings', 'waitingPay']);
+    const amount = hit ? hit.value : null;
+    return {
+      active: w.active,
+      minutes: w.minutes,
+      seconds: w.seconds,
+      thresholdMinutes: w.thresholdMinutes,
+      /* `eligible` is only the local "past the threshold" hint; the amount is
+         strictly the backend figure, so it stays null until the backend sends it. */
+      eligible: w.compensationApplies,
+      amount,
+      amountText: amount == null ? null : moneyText(amount),
+      text: w.text,
+      note: w.note,
+    };
+  }
+
+  /* ---- Address / route change after assignment -----------------------------
+   * `acknowledgedAt` is the timestamp the rider last saw, so the banner clears
+   * once acknowledged. The payout on a route change may rise but never fall —
+   * the caller re-runs payoutReconciliation with the new figure. */
+  function routeChangeInfo(order, acknowledgedAt) {
+    const o = order || {};
+    const at = o.routeUpdatedAt || o.deliveryAddressChangedAt || o.addressChangedAt || o.routeChangedAt || null;
+    const atMs = Date.parse(at);
+    if (!Number.isFinite(atMs)) return { changed: false, at: null, reason: '', compensation: null, compensationText: null, message: '' };
+    const ackMs = Date.parse(acknowledgedAt);
+    const changed = !Number.isFinite(ackMs) || atMs > ackMs;
+    const reason = String(o.routeChangeReason || o.addressChangeReason || '').trim();
+    const hit = firstNumber(o, ['routeChangeCompensation', 'addressChangeCompensation', 'routeChangePay']);
+    const compensation = hit ? hit.value : null;
+    return {
+      changed,
+      at,
+      reason,
+      compensation,
+      compensationText: compensation == null ? null : moneyText(compensation),
+      message: changed
+        ? 'Delivery address or route updated.' + (reason ? ' ' + reason + '.' : '')
+        : '',
+    };
+  }
+
+  /* ---- Reassignment / cancellation ----------------------------------------- */
+  function assignmentEndInfo(order) {
+    const o = order || {};
+    const st = String(o.status || '');
+    const rs = String(o.riderStatus || '');
+    const cancelled = st === 'cancelled' || o.cancelled === true || o.cancelledAt != null;
+    const reassigned = !cancelled && (rs === 'unassigned' || o.reassigned === true || o.assignmentCancelled === true || String(o.reassignmentReason || '').trim() !== '');
+    if (!cancelled && !reassigned) return { ended: false, kind: '', message: '', compensation: null, compensationText: null };
+    const hit = firstNumber(o, cancelled
+      ? ['cancellationCompensation', 'cancelledCompensation', 'cancelCompensation']
+      : ['reassignmentCompensation', 'reassignCompensation']);
+    const compensation = hit ? hit.value : null;
+    const reason = String(o.cancellationReason || o.reassignmentReason || o.assignmentCancelledReason || '').trim();
+    return {
+      ended: true,
+      kind: cancelled ? 'cancelled' : 'reassigned',
+      message: cancelled
+        ? 'This delivery was cancelled by Eatswada.' + (reason ? ' Reason: ' + reason + '.' : '')
+        : 'This delivery was reassigned to another rider.' + (reason ? ' Reason: ' + reason + '.' : ''),
+      compensation,
+      compensationText: compensation == null ? null : moneyText(compensation),
+    };
+  }
+
+  /* ---- Earnings summary with estimated expenses ----------------------------
+   * Gross, estimated fuel, maintenance allowance, estimated net, deliveries,
+   * incentives and waiting compensation for one period block. Every figure is
+   * read from the backend; nothing is derived. */
+  function earningsSummary(block) {
+    const b = block || {};
+    const grossHit = firstNumber(b, ['earnings', 'grossEarnings', 'gross', 'totalEarnings']);
+    const fuelHit = firstNumber(b, ['estimatedFuelExpense', 'fuelExpense', 'estimatedFuel', 'fuelCost']);
+    const maintHit = firstNumber(b, ['maintenanceAllowance', 'maintenance', 'estimatedMaintenance']);
+    const netHit = firstNumber(b, ['estimatedNetEarnings', 'netEarnings', 'net']);
+    const incHit = firstNumber(b, ['incentives', 'incentive', 'incentiveEarnings', 'weeklyIncentive']);
+    const waitHit = firstNumber(b, ['waitingCompensation', 'waitCompensation', 'waitingEarnings', 'waitTimePay']);
+    const gross = grossHit ? grossHit.value : null;
+    const fuel = fuelHit ? fuelHit.value : null;
+    const maintenance = maintHit ? maintHit.value : null;
+    const net = netHit ? netHit.value : null;
+    const incentives = incHit ? incHit.value : null;
+    const waiting = waitHit ? waitHit.value : null;
+    return {
+      gross,
+      fuel,
+      maintenance,
+      net,
+      incentives,
+      waiting,
+      deliveries: earningsOrderCount(b),
+      hasExpenses: fuel != null || maintenance != null,
+      grossText: gross == null ? null : moneyText(gross),
+      fuelText: fuel == null ? null : moneyText(fuel),
+      maintenanceText: maintenance == null ? null : moneyText(maintenance),
+      netText: net == null ? null : moneyText(net),
+      incentivesText: incentives == null ? null : moneyText(incentives),
+      waitingText: waiting == null ? null : moneyText(waiting),
+    };
+  }
+
+  /* ---- Settlement ledger ---------------------------------------------------
+   * Entries carry date/type/amount/status. A reversal is its own entry and is
+   * never hidden or altered: it is flagged and shown as a negative amount. */
+  const LEDGER_STATUSES = ['pending', 'settled', 'reversed'];
+  function ledgerEntryRows(entries) {
+    return (Array.isArray(entries) ? entries : []).filter(Boolean).map(e => {
+      const hit = firstNumber(e, ['amount', 'value', 'netAmount']);
+      const status = String(e.status || '').trim().toLowerCase();
+      const type = String(e.type || e.kind || e.entryType || '').trim();
+      const reversal = e.reversed === true || status === 'reversed' || type.toLowerCase() === 'reversal';
+      const amount = hit ? hit.value : null;
+      return {
+        date: String(e.date || e.createdAt || e.settledAt || '').trim(),
+        type,
+        status,
+        reversal,
+        amount,
+        amountText: amount == null ? '—' : moneyText(amount),
+        signedText: amount == null ? '—' : (reversal && amount > 0 ? '-' + moneyText(amount) : moneyText(amount)),
+        reference: String(e.reference || e.utr || e.referenceId || '').trim(),
+        label: String(e.label || e.description || '').trim(),
+        tone: reversal ? 'reversal' : (LEDGER_STATUSES.includes(status) ? status : ''),
+      };
+    });
+  }
+
+  function paginationInfo(data) {
+    const d = data || {};
+    const page = Math.max(1, Math.floor(Number(d.page) || 1));
+    const pages = Math.max(1, Math.floor(Number(d.pages) || 1));
+    const total = optionalNumber(d.total);
+    return { page, pages, total, hasMore: page < pages };
+  }
+
+  /* ---- Idempotency ---------------------------------------------------------
+   * A unique key per state change so a retry after a timeout cannot duplicate
+   * an action (accept, picked up, delivered, COD collected). Sent as the
+   * Idempotency-Key header (OQ6); the page also keeps an in-flight guard. */
+  function idempotencyKey(prefix) {
+    const p = prefix == null ? '' : String(prefix);
+    let rand = null;
+    try {
+      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') rand = globalThis.crypto.randomUUID();
+    } catch { rand = null; }
+    if (!rand) {
+      rand = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : ((r & 0x3) | 0x8);
+        return v.toString(16);
+      });
+    }
+    return (p ? p + ':' : '') + rand;
+  }
+
   return {
     VEHICLE_TYPES,
     APPLICATION_STATUSES,
@@ -885,5 +1309,27 @@
     nextDeliveryStep,
     homeAlerts,
     incentiveDisplay,
+    /* Route, guaranteed payout, expenses, ledger, idempotency + formatters. */
+    formatPaise,
+    paiseToRupees,
+    moneyText,
+    formatDistance,
+    formatMinutes,
+    optionalNumber,
+    routeLeg,
+    routeInfo,
+    payoutComponents,
+    payoutGuarantee,
+    payoutReconciliation,
+    offerExpiry,
+    offerDetails,
+    waitingCompensationInfo,
+    routeChangeInfo,
+    assignmentEndInfo,
+    earningsSummary,
+    ledgerEntryRows,
+    paginationInfo,
+    idempotencyKey,
+    LEDGER_STATUSES,
   };
 });

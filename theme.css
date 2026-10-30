@@ -533,6 +533,13 @@ body{background:var(--bg);color:var(--text)}
 .offerMoney small{display:block;color:var(--muted);font-size:11.5px;font-weight:700}
 .offerMoney strong{display:block;font:800 34px var(--font);letter-spacing:-1px;color:var(--text);margin:2px 0;font-variant-numeric:tabular-nums}
 .offerMoney .offerEstTag{display:block;font-size:11px;line-height:1.4;font-weight:700;color:var(--muted)}
+.offerGpsWarn,.offerRouteWarn{margin:12px 0 0;padding:9px 12px;border-radius:var(--r);font-size:12px;font-weight:700;line-height:1.45}
+.offerGpsWarn{background:var(--warn-bg,rgba(245,158,11,.14));color:var(--warn-ink,#8a5a00)}
+.offerRouteWarn{background:var(--surface2);color:var(--muted)}
+.offerConfirmed{margin:12px 0 0;padding:10px 12px;border-radius:var(--r);font-size:12.5px;font-weight:700;line-height:1.45}
+.offerConfirmed.ok{background:rgba(21,128,61,.12);color:#15803d}
+.offerConfirmed.up{background:rgba(21,128,61,.16);color:#0f6b33}
+.offerConfirmed.error{background:var(--danger-bg,rgba(220,38,38,.12));color:var(--danger-ink,#b91c1c)}
 
 /* Transparent earnings breakdown (delivery pay / bonus / tip). */
 .offerBreakdown{display:grid;gap:0;margin-top:10px;padding:6px 14px;border-radius:var(--r);background:var(--surface2)}
@@ -664,6 +671,23 @@ body{background:var(--bg);color:var(--text)}
   background:var(--warnSoft);border:1px solid rgba(178,106,0,.25);color:#5c3a00;
   font-size:12.5px;font-weight:700;line-height:1.45
 }
+/* Route/address change and reassignment/cancellation banners (Home + focus). */
+.assignmentBanner{
+  margin:0 0 12px;padding:13px 15px;border-radius:var(--r-sm);
+  background:var(--infoSoft);border:1px solid rgba(37,99,235,.25);color:#17327a;
+  font-size:13px;font-weight:700;line-height:1.5
+}
+.assignmentBanner.ended{background:var(--dangerSoft);border-color:rgba(200,40,58,.25);color:#7a1220}
+.assignmentBanner .btn{margin-top:9px}
+.changeBanner{
+  margin:0 0 12px;padding:12px 14px;border-radius:var(--r-sm);
+  background:var(--infoSoft);border:1px solid rgba(37,99,235,.25);color:#17327a;
+  font-size:12.5px;font-weight:700;line-height:1.5
+}
+.changeBanner b{display:block;margin-bottom:3px}
+/* Waiting-compensation line inside the kitchen panel. */
+.waitComp{margin-top:6px;font-size:12.5px;font-weight:800;color:var(--ok)}
+.waitComp.pending{color:var(--muted);font-weight:700}
 .cooldownBanner{
   margin:0 0 10px;padding:12px 14px;border-radius:var(--r-sm);
   background:var(--dangerSoft);border:1px solid rgba(200,40,58,.25);color:#7a1220;
@@ -749,6 +773,14 @@ body{background:var(--bg);color:var(--text)}
 .earnBreak .row{padding:8px 0;font-size:12.5px}
 .earnBreak .row:last-child{border-bottom:0}
 .rowHint{color:var(--faint);font-weight:700;font-size:11px}
+/* Earnings ledger: reversal rows are flagged and signed negative. */
+.row.reversal .rowLabel,.row.reversal b{color:var(--danger)}
+.row.reversal b{text-decoration:line-through;text-decoration-thickness:1.5px}
+.earnHero .earnUpdated{margin-top:6px;font-size:11.5px;font-weight:700;color:rgba(255,245,220,.7)}
+.pullHint{margin:0 0 10px;text-align:center;font-size:12px;font-weight:800;color:var(--muted)}
+.earnError{margin:0 0 12px}
+.earnError[hidden]{display:none}
+#earnLedgerMore{margin-top:10px;width:100%}
 
 /* Settlement net-balance banner + ledger heads */
 .netBanner{padding:13px 14px;border-radius:var(--r-sm);font-size:14.5px;font-weight:900;text-align:center;line-height:1.4;font-variant-numeric:tabular-nums}
